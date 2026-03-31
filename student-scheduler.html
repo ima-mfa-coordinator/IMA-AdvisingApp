@@ -470,7 +470,7 @@ async function api(action, params) {
   const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(params));
   const r = await fetch(url);
   return r.json();
-}}); return r.json(); }
+}
 function showErr(id,inp) { document.getElementById(id).classList.add('visible'); if(inp) document.getElementById(inp).classList.add('error'); }
 function clrErr(id,inp) { document.getElementById(id).classList.remove('visible'); if(inp) document.getElementById(inp).classList.remove('error'); }
 function setLoad(on,tid,sid,off) { document.getElementById(sid).classList.toggle('hidden',!on); if(!on&&off) document.getElementById(tid).textContent=off; }

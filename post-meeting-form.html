@@ -277,7 +277,7 @@ async function api(action, params) {
   const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(params));
   const r = await fetch(url);
   return r.json();
-}}); return r.json(); }
+}
 init();
 </script>
 </body>
