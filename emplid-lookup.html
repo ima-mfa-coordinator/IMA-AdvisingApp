@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a18; --paper: #f5f2eb; --cream: #ede9df; --rule: #c8c2b4;
+    --accent: #2d5a3d; --accent-light: #e8f0ea; --warn: #8b3a1a; --muted: #7a7568;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Mono', monospace; background: var(--paper); color: var(--ink); min-height: 100vh; }
+  .masthead { background: var(--ink); color: var(--paper); padding: 24px 40px; border-bottom: 3px solid var(--accent); }
+  .masthead-title { font-family: 'DM Serif Display', serif; font-size: 24px; }
+  .masthead-sub { font-size: 10px; color: var(--rule); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+  .container { max-width: 560px; margin: 0 auto; padding: 48px 24px; }
+  .card { background: white; border: 1px solid var(--rule); border-radius: 2px; padding: 32px; box-shadow: 2px 3px 0 var(--cream); }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 6px; }
+  .section-desc { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+  label { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  input { width: 100%; padding: 12px 14px; border: 1px solid var(--rule); background: var(--paper); font-family: 'DM Mono', monospace; font-size: 15px; color: var(--ink); border-radius: 2px; letter-spacing: 0.05em; }
+  input:focus { outline: none; border-color: var(--accent); background: white; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border: none; cursor: pointer; border-radius: 2px; background: var(--ink); color: var(--paper); width: 100%; justify-content: center; margin-top: 16px; transition: background 0.15s; }
+  .btn:hover { background: var(--accent); }
+  .result { margin-top: 28px; border-top: 1px solid var(--rule); padding-top: 24px; }
+  .result-name { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 4px; }
+  .result-id { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+  .result-section { margin-bottom: 20px; }
+  .result-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .course-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 2px; margin-bottom: 6px; font-size: 12.5px; background: var(--cream); }
+  .course-item::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .stage-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 2px; font-size: 12px; }
+  .stage-0 { background: #f5ece8; color: #8b3a1a; border: 1px solid #8b3a1a; }
+  .stage-1 { background: #fdf3e0; color: #7a4f00; border: 1px solid #e8a020; }
+  .stage-2 { background: #fdf3e0; color: #7a4f00; border: 1px solid #e8a020; }
+  .stage-3 { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent); }
+  .meet-link { font-size: 12px; color: var(--accent); word-break: break-all; }
+  .hidden { display: none; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="masthead">
+  <div class="masthead-title">Course Lookup</div>
+  <div class="masthead-sub">Check your pre-registration status</div>
+</div>
+<div class="container">
+  <div class="card">
+    <div class="section-title">Look up your courses</div>
+    <div class="section-desc">Enter your EMPLID to see your advising status and course pre-registrations.</div>
+    <div>
+      <label>Your EMPLID</label>
+      <input type="text" id="emplidInput" placeholder="e.g. 24473181" maxlength="12" inputmode="numeric">
+    </div>
+    <button class="btn" onclick="lookup()">
+      <span id="btnText">Look up</span>
+      <span class="spinner hidden" id="spinner"></span>
+    </button>
+
+    <div class="result hidden" id="result">
+      <div class="result-name" id="resultName"></div>
+      <div class="result-id" id="resultId"></div>
+
+      <div class="result-section">
+        <div class="result-label">Advising Status</div>
+        <div class="stage-info" id="stageInfo"></div>
+      </div>
+
+      <div class="result-section" id="slotSection">
+        <div class="result-label">Advising Slot</div>
+        <div id="slotInfo" style="font-size:13px;"></div>
+      </div>
+
+      <div class="result-section" id="coursesSection">
+        <div class="result-label">Pre-Registered Courses</div>
+        <div id="coursesList"></div>
+      </div>
+
+      <div class="result-section" id="registeredSection">
+        <div class="result-label">From Student Schedule</div>
+        <div id="registeredList"></div>
+      </div>
+    </div>
+
+    <div class="result hidden" id="notFound" style="color:var(--warn); font-size:13px; margin-top:20px;">
+      EMPLID not found. Please check and try again, or contact your advisor.
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzd46VHE4ZRa7r5XqB55Ba-LqEZTSPZt809W2b00F21virlMHYYJIp9qTpD7B3JONc0/exec' };
+
+const STAGE_LABELS = [
+  ['Not yet booked', 'stage-0'],
+  ['Slot booked — awaiting meeting', 'stage-1'],
+  ['Meeting complete — course selection pending', 'stage-2'],
+  ['Complete ✓', 'stage-3']
+];
+
+document.getElementById('emplidInput').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+async function lookup() {
+  const emplid = document.getElementById('emplidInput').value.trim();
+  if (!emplid) return;
+
+  document.getElementById('spinner').classList.remove('hidden');
+  document.getElementById('btnText').textContent = 'Looking up…';
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('notFound').classList.add('hidden');
+
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=lookupEmplid', {
+      method: 'POST',
+      body: JSON.stringify({ emplid }),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(r => r.json());
+
+    if (!res.found) {
+      document.getElementById('notFound').classList.remove('hidden');
+    } else {
+      document.getElementById('resultName').textContent = res.name;
+      document.getElementById('resultId').textContent = `EMPLID: ${emplid}`;
+
+      const [label, cls] = STAGE_LABELS[res.stage] || STAGE_LABELS[0];
+      document.getElementById('stageInfo').className = 'stage-info ' + cls;
+      document.getElementById('stageInfo').textContent = label;
+
+      const slotSection = document.getElementById('slotSection');
+      if (res.slotDay) {
+        document.getElementById('slotInfo').innerHTML = `
+          ${res.advisor} · ${res.slotDay} at ${res.slotTime}
+          ${res.meetLink ? `<br><a class="meet-link" href="${res.meetLink}" target="_blank">Join Google Meet</a>` : ''}
+        `;
+        slotSection.classList.remove('hidden');
+      } else {
+        slotSection.classList.add('hidden');
+      }
+
+      const coursesList = document.getElementById('coursesList');
+      const coursesSection = document.getElementById('coursesSection');
+      if (res.finalCourses && res.finalCourses.length > 0) {
+        coursesList.innerHTML = res.finalCourses.map(c => `<div class="course-item">${c}</div>`).join('');
+        coursesSection.classList.remove('hidden');
+      } else {
+        coursesSection.classList.add('hidden');
+      }
+
+      const registeredList = document.getElementById('registeredList');
+      const registeredSection = document.getElementById('registeredSection');
+      if (res.registeredCourses && res.registeredCourses.length > 0) {
+        registeredList.innerHTML = res.registeredCourses.map(c => `<div class="course-item">${c}</div>`).join('');
+        registeredSection.classList.remove('hidden');
+      } else {
+        registeredSection.classList.add('hidden');
+      }
+
+      document.getElementById('result').classList.remove('hidden');
+    }
+  } catch(e) {
+    alert('Error connecting. Please try again.');
+  }
+
+  document.getElementById('spinner').classList.add('hidden');
+  document.getElementById('btnText').textContent = 'Look up';
+}
+</script>
+</body>
+</html>

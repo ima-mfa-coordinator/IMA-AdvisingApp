@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Pre-Registration — IMA MFA</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1a1a18;--paper:#f5f2eb;--cream:#ede9df;--rule:#c8c2b4;--accent:#2d5a3d;--accent-light:#e8f0ea;--warn:#8b3a1a;--warn-light:#f5ece8;--muted:#7a7568;--blue:#2a5a8b;--blue-light:#e8f0f8}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Mono',monospace;background:var(--paper);color:var(--ink);min-height:100vh}
+  .masthead{background:var(--ink);color:var(--paper);padding:24px 40px;border-bottom:3px solid var(--accent)}
+  .masthead-title{font-family:'DM Serif Display',serif;font-size:24px}
+  .masthead-sub{font-size:10px;color:var(--rule);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+  .container{max-width:680px;margin:0 auto;padding:40px 24px 80px}
+  .card{background:white;border:1px solid var(--rule);border-radius:2px;padding:32px;margin-bottom:20px;box-shadow:2px 3px 0 var(--cream)}
+  .card-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:24px}
+  .section-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:6px}
+  .section-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+  .student-banner{background:var(--accent-light);border:1px solid var(--accent);border-radius:2px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:var(--accent)}
+  .deadline-box{background:var(--warn-light);border:1px solid var(--warn);border-radius:2px;padding:12px 16px;font-size:12px;color:var(--warn);margin-bottom:24px}
+  .interests-section{margin-bottom:24px}
+  .interests-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .badge-row{display:flex;flex-wrap:wrap;gap:6px}
+  .badge{display:inline-block;padding:3px 10px;font-size:11px;border-radius:2px;margin:1px}
+  .badge-3cr{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent)}
+  .badge-1cr{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue)}
+  .divider{border:none;border-top:1px solid var(--rule);margin:24px 0}
+  /* COURSE ROWS */
+  .course-block{margin-bottom:24px}
+  .course-block-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+  .course-block-title{font-size:13px;font-family:'DM Serif Display',serif}
+  .course-block-rule{font-size:10px;color:var(--muted)}
+  .course-counter{font-size:11px;color:var(--muted);margin-bottom:8px}
+  .course-counter span{color:var(--ink)}
+  .day-heading{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;border-bottom:1px dashed var(--rule);padding-bottom:4px}
+  .course-row{border:1px solid var(--rule);padding:9px 13px;cursor:pointer;font-size:12px;transition:all .12s;background:white;border-radius:2px;display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:start;line-height:1.4;margin-bottom:5px}
+  .course-row:hover:not(.disabled){border-color:var(--accent);background:var(--accent-light)}
+  .course-row.sel3{border-color:var(--accent);background:var(--accent-light)}
+  .course-row.sel1{border-color:var(--blue);background:var(--blue-light)}
+  .course-row.disabled{opacity:.38;cursor:not-allowed}
+  .course-check{width:14px;height:14px;border:1.5px solid var(--rule);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;margin-top:1px;transition:all .12s}
+  .course-row.sel3 .course-check{background:var(--accent);border-color:var(--accent);color:white}
+  .course-row.sel1 .course-check{background:var(--blue);border-color:var(--blue);color:white}
+  .course-row-name{font-size:12px}
+  .course-row-meta{font-size:10px;color:var(--muted);margin-top:2px}
+  .course-row.highlighted{border-color:var(--accent)}
+  .highlighted-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:5px;vertical-align:middle}
+  .error-msg{font-size:11px;color:var(--warn);margin-top:5px;display:none}
+  .error-msg.visible{display:block}
+  label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  textarea{width:100%;padding:11px 14px;border:1px solid var(--rule);background:var(--paper);font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);border-radius:2px;resize:vertical;min-height:80px}
+  textarea:focus{outline:none;border-color:var(--accent);background:white}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;border-radius:2px;transition:all .15s;background:var(--ink);color:var(--paper);width:100%;justify-content:center;margin-top:20px}
+  .btn:hover{background:var(--accent)}
+  .btn:disabled{background:var(--rule);cursor:not-allowed}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .page{display:none}.page.active{display:block}.hidden{display:none!important}
+  .success-card{text-align:center;padding:48px 32px}
+  .success-icon{width:64px;height:64px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px}
+  .success-title{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:12px}
+  .success-desc{font-size:13px;color:var(--muted);line-height:1.7}
+  @media(max-width:500px){.masthead{padding:20px}.container{padding:24px 16px 60px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<div class="masthead">
+  <div class="masthead-title">Course Pre-Registration</div>
+  <div class="masthead-sub">IMA MFA · Post-Advising Meeting · Final Selection</div>
+</div>
+<div class="container">
+
+  <div class="page active" id="pageLoading">
+    <div class="card" style="text-align:center;padding:48px"><div style="font-size:12px;color:var(--muted)">Loading your advising record…</div></div>
+  </div>
+
+  <div class="page" id="pageForm">
+    <div class="card">
+      <div class="card-label">Post-Meeting — Final Course Selection</div>
+      <div class="student-banner">Welcome back, <strong id="studentNameDisplay"></strong>. Please confirm the courses you'd like to be pre-registered for.</div>
+      <div class="deadline-box" id="deadlineBox"></div>
+
+      <div class="interests-section">
+        <div class="interests-label">Your original interests</div>
+        <div class="badge-row" id="prevInterests"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 3-CREDIT -->
+      <div class="course-block">
+        <div class="course-block-header">
+          <div class="course-block-title">3-Credit Courses — Fall 2026</div>
+          <div class="course-block-rule">Select up to 4</div>
+        </div>
+        <div class="course-counter">Selected: <span id="c3count">0</span> / 4</div>
+        <div id="form3crList"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 1-CREDIT -->
+      <div class="course-block">
+        <div class="course-block-header">
+          <div class="course-block-title">1-Credit Workshops</div>
+          <div class="course-block-rule">Select up to 3</div>
+        </div>
+        <div class="course-counter">Selected: <span id="c1count">0</span> / 3</div>
+        <div id="form1crList"></div>
+      </div>
+
+      <div class="error-msg" id="course-error" style="margin-top:4px">Please select at least one course.</div>
+
+      <div style="margin-top:20px">
+        <label>Notes for your advisor (optional)</label>
+        <textarea id="notesField" placeholder="Any follow-up questions from your meeting…"></textarea>
+      </div>
+
+      <button class="btn" onclick="submitSelection()" id="submitBtn">
+        <span id="submitBtnText">Submit Final Selection</span>
+        <span class="spinner hidden" id="submitSpinner"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="page" id="pageAlreadyDone">
+    <div class="card success-card">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Already submitted</div>
+      <div class="success-desc" id="alreadyDoneDesc"></div>
+    </div>
+  </div>
+
+  <div class="page" id="pageSuccess">
+    <div class="card success-card">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Selection confirmed!</div>
+      <div class="success-desc">Your course pre-registration choices have been recorded and you'll receive a confirmation email shortly. Use the EMPLID lookup tool to check your registered courses anytime.</div>
+    </div>
+  </div>
+
+  <div class="page" id="pageError">
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:24px;margin-bottom:16px">⚠</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:8px">Link not found</div>
+      <div style="font-size:12px;color:var(--muted)">This link may be expired or invalid. Please contact your advisor.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzd46VHE4ZRa7r5XqB55Ba-LqEZTSPZt809W2b00F21virlMHYYJIp9qTpD7B3JONc0/exec' };
+
+const COURSES_3CR = [
+  {day:'MONDAYS',    id:'IMA78041',name:'Blank Screen',prof:'Zach Nader',time:'Mon 2:10–5pm'},
+  {day:'MONDAYS',    id:'IMA70900',name:'History and Theory of Documentary',prof:'Reiko Tahara',time:'Mon 6–9:50pm'},
+  {day:'TUESDAYS',   id:'IMA75000',name:'Emerging Media 1',prof:'Ricardo Miranda',time:'Tue 2–5:30pm'},
+  {day:'TUESDAYS',   id:'IMA78087',name:'Digital Resistance',prof:'kara lynch',time:'Tue 6–9pm · Online'},
+  {day:'WEDNESDAYS', id:'IMA78052',name:'Story Strategies',prof:'Andrew Lund',time:'Wed 10am–1pm'},
+  {day:'WEDNESDAYS', id:'IMA78065',name:'Language to be Looked At',prof:'Andrew Demirjian',time:'Wed 5:30–8:20pm'},
+  {day:'THURSDAYS',  id:'IMA77100',name:'Community Media and Advocacy & The Urban Environment',prof:'Amber Bemak',time:'Thu 10am–12:50pm'},
+  {day:'THURSDAYS',  id:'IMA75300',name:'Doc 2: The Short Film',prof:'Alex Mallis',time:'Thu 1:30–5pm'},
+  {day:'THURSDAYS',  id:'IMA75100',name:'Documentary 1',prof:'Edwin Martinez',time:'Thu 5:30–9pm'},
+  {day:'FRIDAYS',    id:'IMA78081',name:'Sound Environments',prof:'Hans Tammen',time:'Fri 10am–1pm'},
+  {day:'FRIDAYS',    id:'IMA76600',name:'Memory Chamber: 3D Environments for Interactive Media and Film',prof:'Poyen Wang',time:'Fri 2:10–5pm'},
+  {day:'SUMMER 2026',id:'IMA78077',name:'Experimental Darkroom',prof:'Christina Freeman',time:'Tue/Thu 11:40am–3pm, 5/28–7/8'},
+  {day:'SUMMER 2026',id:'IMA78079',name:'Sound Design for Filmmakers',prof:'David Briggs',time:'Tue 4–7:50pm, 5/28–8/12 · Hybrid'},
+];
+const COURSES_1CR = [
+  {id:'IMA78302',name:'Lighting',prof:'Sean Hanley',time:'TBD'},
+  {id:'IMA78313',name:'Premiere Editing and Post Production Workflow',prof:'Iris Devins',time:'TBD · Online'},
+  {id:'IMA78301',name:'Sound Recording',prof:'JT Takagi',time:'Weekend Oct 17–18 or 24–25'},
+  {id:'IMA78360',name:'Impact Producing',prof:'Cecilia Mejia',time:'TBD'},
+  {id:'IMA78349',name:'From Body to Movement: Performative Art and Film',prof:'Yehui Zhao',time:'Summer: Jun 6, 7 & 20'},
+];
+
+let sel3 = [], sel1 = [];
+const params = new URLSearchParams(window.location.search);
+const token = params.get('t'), emplid = params.get('e');
+
+async function init() {
+  if (!token || !emplid) { showPage('pageError'); return; }
+  try {
+    const res = await api('getPostMeetingData', { token, emplid });
+    if (!res.valid) { showPage('pageError'); return; }
+    if (res.alreadySubmitted) {
+      document.getElementById('alreadyDoneDesc').textContent = `You already submitted your final selection on ${res.submittedDate}. Your courses: ${res.finalCourses.join(', ')}.`;
+      showPage('pageAlreadyDone'); return;
+    }
+    document.getElementById('studentNameDisplay').textContent = res.studentName;
+    document.getElementById('deadlineBox').textContent = `⏰ Please submit by ${res.deadline}`;
+
+    // Show original interests as badges
+    const prevDiv = document.getElementById('prevInterests');
+    (res.threeCreditInterests||[]).forEach(n => { const b=document.createElement('span'); b.className='badge badge-3cr'; b.textContent=n; prevDiv.appendChild(b); });
+    (res.oneCreditInterests||[]).forEach(n => { const b=document.createElement('span'); b.className='badge badge-1cr'; b.textContent=n; prevDiv.appendChild(b); });
+
+    // Build course lists (highlighting original interests)
+    const orig3 = new Set(res.threeCreditInterests||[]);
+    const orig1 = new Set(res.oneCreditInterests||[]);
+    buildList3cr(orig3);
+    buildList1cr(orig1);
+    showPage('pageForm');
+  } catch(e) { showPage('pageError'); }
+}
+
+function buildList3cr(highlighted) {
+  const container = document.getElementById('form3crList');
+  let curDay = '';
+  // Put highlighted first within each day
+  const sorted = [...COURSES_3CR].sort((a,b) => {
+    if (highlighted.has(a.name) && !highlighted.has(b.name)) return -1;
+    if (!highlighted.has(a.name) && highlighted.has(b.name)) return 1;
+    return 0;
+  });
+  COURSES_3CR.forEach(c => {
+    if (c.day !== curDay) {
+      curDay = c.day;
+      const h = document.createElement('div'); h.className = 'day-heading'; h.textContent = c.day;
+      container.appendChild(h);
+    }
+    const div = document.createElement('div');
+    div.className = 'course-row' + (highlighted.has(c.name) ? ' highlighted' : '');
+    div.id = 'fr3-' + c.id;
+    div.innerHTML = `<div class="course-check"></div><div><div class="course-row-name">${highlighted.has(c.name)?'<span class="highlighted-dot"></span>':''}${c.name}</div><div class="course-row-meta">${c.prof} · ${c.time}</div></div>`;
+    div.onclick = () => toggle3(div, c.name);
+    container.appendChild(div);
+  });
+}
+
+function buildList1cr(highlighted) {
+  const container = document.getElementById('form1crList');
+  COURSES_1CR.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'course-row' + (highlighted.has(c.name) ? ' highlighted' : '');
+    div.id = 'fr1-' + c.id;
+    div.innerHTML = `<div class="course-check"></div><div><div class="course-row-name">${highlighted.has(c.name)?'<span class="highlighted-dot"></span>':''}${c.name}</div><div class="course-row-meta">${c.prof} · ${c.time}</div></div>`;
+    div.onclick = () => toggle1(div, c.name);
+    container.appendChild(div);
+  });
+}
+
+function toggle3(el, name) {
+  const isSelected = el.classList.contains('sel3');
+  if (!isSelected && sel3.length >= 4) return;
+  if (isSelected) { el.classList.remove('sel3'); el.querySelector('.course-check').textContent = ''; sel3 = sel3.filter(n=>n!==name); document.querySelectorAll('[id^="fr3-"]').forEach(o=>o.classList.remove('disabled')); }
+  else { el.classList.add('sel3'); el.querySelector('.course-check').textContent = '✓'; sel3.push(name); }
+  document.getElementById('c3count').textContent = sel3.length;
+  if (sel3.length >= 4) document.querySelectorAll('[id^="fr3-"]:not(.sel3)').forEach(o=>o.classList.add('disabled'));
+}
+
+function toggle1(el, name) {
+  const isSelected = el.classList.contains('sel1');
+  if (!isSelected && sel1.length >= 3) return;
+  if (isSelected) { el.classList.remove('sel1'); el.querySelector('.course-check').textContent = ''; sel1 = sel1.filter(n=>n!==name); document.querySelectorAll('[id^="fr1-"]').forEach(o=>o.classList.remove('disabled')); }
+  else { el.classList.add('sel1'); el.querySelector('.course-check').textContent = '✓'; sel1.push(name); }
+  document.getElementById('c1count').textContent = sel1.length;
+  if (sel1.length >= 3) document.querySelectorAll('[id^="fr1-"]:not(.sel1)').forEach(o=>o.classList.add('disabled'));
+}
+
+async function submitSelection() {
+  if (!sel3.length && !sel1.length) { document.getElementById('course-error').classList.add('visible'); return; }
+  document.getElementById('course-error').classList.remove('visible');
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitSpinner').classList.remove('hidden');
+  try {
+    const allCourses = [...sel3, ...sel1];
+    const res = await api('submitFinalCourses', { token, emplid, courses: allCourses, notes: document.getElementById('notesField').value });
+    if (res.success) { showPage('pageSuccess'); }
+    else { alert(res.message||'Error. Please try again.'); document.getElementById('submitBtn').disabled=false; document.getElementById('submitSpinner').classList.add('hidden'); }
+  } catch(e) { alert('Error. Please try again.'); document.getElementById('submitBtn').disabled=false; document.getElementById('submitSpinner').classList.add('hidden'); }
+}
+
+function showPage(id) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+async function api(action, params) { const r=await fetch(CONFIG.APPS_SCRIPT_URL+'?action='+action,{method:'POST',body:JSON.stringify(params),headers:{'Content-Type':'application/json'}}); return r.json(); }
+init();
+</script>
+</body>
+</html>
