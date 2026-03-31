@@ -92,7 +92,7 @@
 </div>
 
 <script>
-const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzd46VHE4ZRa7r5XqB55Ba-LqEZTSPZt809W2b00F21virlMHYYJIp9qTpD7B3JONc0/exec' };
+const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwDKUxR9ws_uUOzTYVcmFD2IjUa7OAz5h0ArnUxfLJtZ6q7lonmHyGIH_K-aydSsDA8/exec' };
 
 const STAGE_LABELS = [
   ['Not yet booked', 'stage-0'],
@@ -113,11 +113,7 @@ async function lookup() {
   document.getElementById('notFound').classList.add('hidden');
 
   try {
-    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=lookupEmplid', {
-      method: 'POST',
-      body: JSON.stringify({ emplid }),
-      headers: { 'Content-Type': 'application/json' }
-    }).then(r => r.json());
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=lookupEmplid&data=' + encodeURIComponent(JSON.stringify({ emplid }))).then(r => r.json());
 
     if (!res.found) {
       document.getElementById('notFound').classList.remove('hidden');
