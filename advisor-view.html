@@ -142,22 +142,19 @@
 <script>
 const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwDKUxR9ws_uUOzTYVcmFD2IjUa7OAz5h0ArnUxfLJtZ6q7lonmHyGIH_K-aydSsDA8/exec' };
 
-const COURSES_3CR = [
-  'Blank Screen','History and Theory of Documentary','Emerging Media 1','Digital Resistance',
-  'Story Strategies','Language to be Looked At',
-  'Community Media and Advocacy & The Urban Environment',
-  'Doc 2: The Short Film','Documentary 1','Sound Environments',
-  'Memory Chamber: Virtual Environments for Interactive Media and Film',
-  'Experimental Darkroom','Sound Design for Filmmakers'
-];
-const COURSES_1CR = [
-  'Lighting','Premiere Editing and Post Production Workflow',
-  'Sound Recording','Impact Producing',
-  'From Body to Movement: Performative Art and Film'
-];
+let COURSES_3CR = [];
+let COURSES_1CR = [];
 
 let currentAdvisor = '';
 let allStudents = [];
+
+async function loadCourses() {
+  try {
+    const res = await api('getCourses', {});
+    COURSES_3CR = res.courses3cr || [];
+    COURSES_1CR = res.courses1cr || [];
+  } catch(e) { console.error('Could not load courses:', e); }
+}
 
 function selectAdvisor(name) {
   currentAdvisor = name;
@@ -167,6 +164,7 @@ function selectAdvisor(name) {
 }
 
 async function loadStudents() {
+  if (!COURSES_3CR.length) await loadCourses();
   document.getElementById('studentList').innerHTML = '<div class="loading">Loading…</div>';
   try {
     const res = await api('getAdminData', {});
@@ -334,6 +332,7 @@ const COURSES_1CR_ALL = [
 const TARGET = 12;
 
 async function loadFillData() {
+  if (!COURSES_3CR.length) await loadCourses();
   document.getElementById('fillContent').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">Loading…</div>';
   try {
     const res = await api('getAdminData', {});
