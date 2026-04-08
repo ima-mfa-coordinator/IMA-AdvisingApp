@@ -97,8 +97,8 @@ const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwDKU
 const STAGE_LABELS = [
   ['Not yet booked', 'stage-0'],
   ['Slot booked — awaiting meeting', 'stage-1'],
-  ['Meeting complete — course selection pending', 'stage-2'],
-  ['Complete ✓', 'stage-3']
+  ['Meeting complete — courses being finalized', 'stage-2'],
+  ['Pre-registration confirmed ✓', 'stage-3']
 ];
 
 document.getElementById('emplidInput').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
@@ -129,7 +129,6 @@ async function lookup() {
       if (res.slotDay) {
         document.getElementById('slotInfo').innerHTML = `
           ${res.advisor} · ${res.slotDay} at ${res.slotTime}
-          ${res.meetLink ? `<br><a class="meet-link" href="${res.meetLink}" target="_blank">Join Google Meet</a>` : ''}
         `;
         slotSection.classList.remove('hidden');
       } else {
