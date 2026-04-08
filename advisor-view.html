@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMA MFA — Advisor View</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#1a1a18;--paper:#f5f2eb;--cream:#ede9df;--rule:#c8c2b4;
+    --accent:#2d5a3d;--accent-light:#e8f0ea;--muted:#7a7568;
+    --warn:#8b3a1a;--warn-light:#f5ece8;--blue:#2a5a8b;--blue-light:#e8f0f8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Mono',monospace;background:var(--paper);color:var(--ink);min-height:100vh}
+  .masthead{background:var(--ink);color:var(--paper);padding:20px 32px;border-bottom:3px solid var(--accent);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .masthead-title{font-family:'DM Serif Display',serif;font-size:22px}
+  .masthead-sub{font-size:10px;color:var(--rule);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+  .container{max-width:800px;margin:0 auto;padding:32px 24px 80px}
+
+  /* ADVISOR SELECTOR */
+  .advisor-select{display:flex;gap:12px;margin-bottom:32px}
+  .adv-btn{flex:1;padding:16px;border:2px solid var(--rule);background:white;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;border-radius:2px;transition:all .15s;font-weight:500}
+  .adv-btn:hover{border-color:var(--accent);background:var(--accent-light)}
+  .adv-btn.active{border-color:var(--accent);background:var(--accent);color:white}
+
+  /* STUDENT CARDS */
+  .student-card{background:white;border:1px solid var(--rule);border-radius:2px;margin-bottom:16px;box-shadow:2px 2px 0 var(--cream);overflow:hidden}
+  .card-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .1s;gap:12px}
+  .card-header:hover{background:var(--paper)}
+  .card-header-left{}
+  .student-name{font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:2px}
+  .student-meta{font-size:11px;color:var(--muted)}
+  .card-header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .stage-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .stage-1{background:#e8a020}
+  .stage-2{background:var(--accent)}
+  .stage-3{background:var(--rule)}
+  .toggle-arrow{font-size:12px;color:var(--muted);transition:transform .2s}
+  .toggle-arrow.open{transform:rotate(180deg)}
+
+  .card-body{display:none;padding:0 20px 20px;border-top:1px solid var(--cream)}
+  .card-body.open{display:block}
+
+  .section-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+
+  /* INTERESTS */
+  .interest-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px}
+  .badge{display:inline-block;padding:3px 9px;font-size:10px;border-radius:2px}
+  .badge-3cr{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent)}
+  .badge-1cr{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue)}
+
+  /* COURSE CHECKBOXES */
+  .course-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
+  .course-check-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--rule);border-radius:2px;cursor:pointer;font-size:11.5px;transition:all .1s;background:white;line-height:1.3}
+  .course-check-row:hover{border-color:var(--accent);background:var(--accent-light)}
+  .course-check-row.checked{border-color:var(--accent);background:var(--accent-light)}
+  .course-check-row.checked-1cr{border-color:var(--blue);background:var(--blue-light)}
+  .chk{width:14px;height:14px;border:1.5px solid var(--rule);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+  .course-check-row.checked .chk{background:var(--accent);border-color:var(--accent);color:white}
+  .course-check-row.checked-1cr .chk{background:var(--blue);border-color:var(--blue);color:white}
+
+  .notes-area{width:100%;padding:10px 12px;border:1px solid var(--rule);background:var(--paper);font-family:'DM Mono',monospace;font-size:12px;color:var(--ink);border-radius:2px;resize:vertical;min-height:70px;margin-top:4px}
+  .notes-area:focus{outline:none;border-color:var(--accent);background:white}
+
+  .save-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:var(--ink);color:var(--paper);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;border-radius:2px;margin-top:14px;transition:background .15s}
+  .save-btn:hover{background:var(--accent)}
+  .save-btn:disabled{background:var(--rule);cursor:not-allowed}
+  .save-confirm{font-size:11px;color:var(--accent);margin-top:8px;display:none}
+  .save-confirm.show{display:block}
+
+  .divider-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--rule);margin:14px 0 6px;padding-top:14px;border-top:1px dashed var(--rule)}
+
+  .no-students{text-align:center;padding:48px;color:var(--muted);font-size:13px}
+  .loading{text-align:center;padding:48px;color:var(--muted);font-size:12px}
+
+  .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hidden{display:none!important}
+
+  @media(max-width:500px){
+    .course-grid{grid-template-columns:1fr}
+    .container{padding:20px 16px 60px}
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div>
+    <div class="masthead-title">Advisor View</div>
+    <div class="masthead-sub">IMA MFA · Summer + Fall 2026 Advising</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="advisor-select">
+    <button class="adv-btn" id="btnAndrew" onclick="selectAdvisor('Andrew')">Andrew</button>
+    <button class="adv-btn" id="btnBetty" onclick="selectAdvisor('Betty')">Betty</button>
+  </div>
+
+  <div id="studentList"><div class="loading">Select an advisor above to see their students.</div></div>
+
+</div>
+
+<script>
+const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwDKUxR9ws_uUOzTYVcmFD2IjUa7OAz5h0ArnUxfLJtZ6q7lonmHyGIH_K-aydSsDA8/exec' };
+
+const COURSES_3CR = [
+  'Blank Screen','History and Theory of Documentary','Emerging Media 1','Digital Resistance',
+  'Story Strategies','Language to be Looked At',
+  'Community Media and Advocacy & The Urban Environment',
+  'Doc 2: The Short Film','Documentary 1','Sound Environments',
+  'Memory Chamber: 3D Environments for Interactive Media and Film',
+  'Experimental Darkroom','Sound Design for Filmmakers'
+];
+const COURSES_1CR = [
+  'Lighting','Premiere Editing and Post Production Workflow',
+  'Sound Recording','Impact Producing',
+  'From Body to Movement: Performative Art and Film'
+];
+
+let currentAdvisor = '';
+let allStudents = [];
+
+function selectAdvisor(name) {
+  currentAdvisor = name;
+  document.getElementById('btnAndrew').classList.toggle('active', name === 'Andrew');
+  document.getElementById('btnBetty').classList.toggle('active', name === 'Betty');
+  loadStudents();
+}
+
+async function loadStudents() {
+  document.getElementById('studentList').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const res = await api('getAdminData', {});
+    allStudents = (res.students || []).filter(s => s.advisor === currentAdvisor && s.stage >= 1);
+    allStudents.sort((a, b) => a.slotDay > b.slotDay ? 1 : a.slotDay < b.slotDay ? -1 : a.slotTime > b.slotTime ? 1 : -1);
+    renderStudents();
+  } catch(e) {
+    document.getElementById('studentList').innerHTML = '<div class="no-students">Error loading. Please refresh.</div>';
+  }
+}
+
+function renderStudents() {
+  const list = document.getElementById('studentList');
+  if (!allStudents.length) {
+    list.innerHTML = '<div class="no-students">No booked students yet for ' + currentAdvisor + '.</div>';
+    return;
+  }
+
+  list.innerHTML = allStudents.map((s, idx) => {
+    const interests3 = (s.threeCreditInterests || []).map(c => `<span class="badge badge-3cr">${c}</span>`).join('');
+    const interests1 = (s.oneCreditInterests || []).map(c => `<span class="badge badge-1cr">${c}</span>`).join('');
+    const stageLabel = ['','Booked','Met','Complete'][s.stage] || '';
+
+    const courses3html = COURSES_3CR.map(c => {
+      const isChecked = (s.finalCourses||[]).includes(c);
+      return `<div class="course-check-row${isChecked?' checked':''}" onclick="toggleCourse(this,'${s.emplid}','${c.replace(/'/g,"\\'")}','3cr')">
+        <div class="chk">${isChecked?'✓':''}</div><span>${c}</span>
+      </div>`;
+    }).join('');
+
+    const courses1html = COURSES_1CR.map(c => {
+      const isChecked = (s.finalCourses||[]).includes(c);
+      return `<div class="course-check-row${isChecked?' checked-1cr':''}" onclick="toggleCourse(this,'${s.emplid}','${c.replace(/'/g,"\\'")}','1cr')">
+        <div class="chk">${isChecked?'✓':''}</div><span>${c}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="student-card">
+      <div class="card-header" onclick="toggleCard('card-${idx}')">
+        <div class="card-header-left">
+          <div class="student-name">${s.name}</div>
+          <div class="student-meta">${s.slotDay} at ${s.slotTime} · ${s.credits ? s.credits + ' credits' : 'credits unknown'}</div>
+        </div>
+        <div class="card-header-right">
+          <div class="stage-dot stage-${s.stage}"></div>
+          <span style="font-size:10px;color:var(--muted)">${stageLabel}</span>
+          <span class="toggle-arrow" id="arrow-${idx}">▼</span>
+        </div>
+      </div>
+      <div class="card-body" id="card-${idx}">
+        ${interests3 || interests1 ? `
+          <div class="section-label">Student's interests</div>
+          <div class="interest-badges">${interests3}${interests1}</div>
+        ` : ''}
+        ${s.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;font-style:italic">"${s.notes}"</div>` : ''}
+
+        <div class="section-label">Pre-register for (3-credit)</div>
+        <div class="course-grid" id="grid3-${s.emplid}">${courses3html}</div>
+
+        <div class="divider-label">1-credit workshops</div>
+        <div class="course-grid" id="grid1-${s.emplid}">${courses1html}</div>
+
+        <div class="section-label">Notes for coordinator</div>
+        <textarea class="notes-area" id="notes-${s.emplid}" placeholder="Any notes about this student's selections…">${s.advisorNotes||''}</textarea>
+
+        <button class="save-btn" id="savebtn-${s.emplid}" onclick="saveStudent('${s.emplid}')">
+          Save
+        </button>
+        <div class="save-confirm" id="saveconfirm-${s.emplid}">✓ Saved</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Track selected courses per student
+const selectedCourses = {};
+
+function toggleCourse(el, emplid, course, type) {
+  if (!selectedCourses[emplid]) {
+    // Initialize from current state
+    const student = allStudents.find(s => s.emplid === emplid);
+    selectedCourses[emplid] = [...(student.finalCourses || [])];
+  }
+
+  const isChecked = el.classList.contains('checked') || el.classList.contains('checked-1cr');
+  const selClass = type === '3cr' ? 'checked' : 'checked-1cr';
+
+  if (isChecked) {
+    el.classList.remove(selClass);
+    el.querySelector('.chk').textContent = '';
+    selectedCourses[emplid] = selectedCourses[emplid].filter(c => c !== course);
+  } else {
+    el.classList.add(selClass);
+    el.querySelector('.chk').textContent = '✓';
+    selectedCourses[emplid].push(course);
+  }
+}
+
+async function saveStudent(emplid) {
+  const btn = document.getElementById('savebtn-' + emplid);
+  const confirm = document.getElementById('saveconfirm-' + emplid);
+  const notes = document.getElementById('notes-' + emplid).value;
+
+  // Get courses — use selectedCourses if modified, else current finalCourses
+  const student = allStudents.find(s => s.emplid === emplid);
+  const courses = selectedCourses[emplid] || student.finalCourses || [];
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+  try {
+    const res = await api('advisorUpdateStudent', { emplid, courses, advisorNotes: notes });
+    if (res.success) {
+      confirm.classList.add('show');
+      setTimeout(() => confirm.classList.remove('show'), 3000);
+      // Update local state
+      student.finalCourses = courses;
+      student.advisorNotes = notes;
+    } else {
+      alert('Error saving. Please try again.');
+    }
+  } catch(e) {
+    alert('Error saving. Please try again.');
+  }
+  btn.disabled = false;
+  btn.innerHTML = 'Save';
+}
+
+function toggleCard(id) {
+  const body = document.getElementById(id);
+  const idx = id.replace('card-','');
+  const arrow = document.getElementById('arrow-' + idx);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+async function api(action, params) {
+  const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(params));
+  const r = await fetch(url);
+  return r.json();
+}
+</script>
+</body>
+</html>
