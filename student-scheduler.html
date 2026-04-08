@@ -204,9 +204,9 @@
       <div class="course-block">
         <div class="course-block-header">
           <div class="course-block-title">3-Credit Courses — Fall 2026</div>
-          <div class="course-block-rule">Select up to 4</div>
+          <div class="course-block-rule">Select up to 6</div>
         </div>
-        <div class="course-counter">Selected: <span class="count" id="count3cr">0</span> / 4</div>
+        <div class="course-counter">Selected: <span class="count" id="count3cr">0</span> / 6</div>
         <div id="courseList3cr"></div>
       </div>
 
@@ -223,6 +223,11 @@
       </div>
 
       <div class="error-msg" id="course-error" style="margin-top:4px">Please select at least one course.</div>
+      <div class="field" style="margin-top:20px">
+        <label>Notes or questions for your advisor (optional)</label>
+        <textarea id="studentNotes" placeholder="Anything you'd like to discuss or ask in advance…" style="width:100%;padding:11px 14px;border:1px solid var(--rule);background:var(--paper);font-family:'DM Mono',monospace;font-size:13px;border-radius:2px;resize:vertical;min-height:80px"></textarea>
+      </div>
+
 
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="goToPage(2)">← Back</button>
@@ -320,7 +325,7 @@ function makeRow(course, type) {
 function toggleRow(el, course, type) {
   const isSelected = el.classList.contains('selected') || el.classList.contains('selected-1cr');
   const arr = type === '3cr' ? S.courses3cr : S.courses1cr;
-  const max = type === '3cr' ? 4 : 3;
+  const max = type === '3cr' ? 6 : 3;
   const countId = type === '3cr' ? 'count3cr' : 'count1cr';
   const selClass = type === '3cr' ? 'selected' : 'selected-1cr';
   const allIds = (type === '3cr' ? COURSES_3CR : COURSES_1CR).map(c => 'row-' + c.id);
@@ -452,7 +457,8 @@ async function submitRegistration() {
       slotId:S.slot.slotId, slotDay:S.slot.day, slotTime:S.slot.time,
       threeCreditCourses:S.courses3cr.map(c=>c.name),
       oneCreditCourses:S.courses1cr.map(c=>c.name),
-      credits:S.credits, isRescheduling:S.isRescheduling, oldSlotId:S.existingSlotId||null
+      credits:S.credits, isRescheduling:S.isRescheduling, oldSlotId:S.existingSlotId||null,
+      notes:document.getElementById('studentNotes').value
     });
     if (res.success) {
       document.getElementById('successDesc').textContent=`Your session with ${S.advisor} is confirmed for ${S.slot.day} at ${S.slot.time}.`;
