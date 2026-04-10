@@ -139,11 +139,26 @@ let COURSES_1CR = [];
 let currentAdvisor = '';
 let allStudents = [];
 
-async function api(action, params) {
-  const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(params));
-  const r = await fetch(url);
-  const text = await r.text();
-  return JSON.parse(text);
+function api(action, params) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_' + Date.now();
+    const script = document.createElement('script');
+    const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action +
+                '&data=' + encodeURIComponent(JSON.stringify(params)) +
+                '&callback=' + callbackName;
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error('JSONP failed'));
+    };
+    script.src = url;
+    document.body.appendChild(script);
+  });
 }
 
 async function loadCourses() {
