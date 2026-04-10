@@ -213,16 +213,18 @@ function renderStudents() {
     const stageLabel = ['','Booked','Met','Complete'][s.stage] || '';
 
     const courses3html = COURSES_3CR.map(c => {
-      const isChecked = (s.finalCourses||[]).includes(c);
-      return `<div class="course-check-row${isChecked?' checked':''}" onclick="toggleCourse(this,'${s.emplid}','${c.replace(/'/g,"\\'")}','3cr')">
-        <div class="chk">${isChecked?'✓':''}</div><span>${c}</span>
+      const name = typeof c === 'string' ? c : (c.name || String(c));
+      const isChecked = (s.finalCourses||[]).includes(name);
+      return `<div class="course-check-row${isChecked?' checked':''}" onclick="toggleCourse(this,'${s.emplid}','${name.replace(/'/g,"\\'")}','3cr')">
+        <div class="chk">${isChecked?'✓':''}</div><span>${name}</span>
       </div>`;
     }).join('');
 
     const courses1html = COURSES_1CR.map(c => {
-      const isChecked = (s.finalCourses||[]).includes(c);
-      return `<div class="course-check-row${isChecked?' checked-1cr':''}" onclick="toggleCourse(this,'${s.emplid}','${c.replace(/'/g,"\\'")}','1cr')">
-        <div class="chk">${isChecked?'✓':''}</div><span>${c}</span>
+      const name = typeof c === 'string' ? c : (c.name || String(c));
+      const isChecked = (s.finalCourses||[]).includes(name);
+      return `<div class="course-check-row${isChecked?' checked-1cr':''}" onclick="toggleCourse(this,'${s.emplid}','${name.replace(/'/g,"\\'")}','1cr')">
+        <div class="chk">${isChecked?'✓':''}</div><span>${name}</span>
       </div>`;
     }).join('');
 
