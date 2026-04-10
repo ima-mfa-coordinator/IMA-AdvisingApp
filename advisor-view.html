@@ -146,18 +146,29 @@ function api(action, params) {
     const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action +
                 '&data=' + encodeURIComponent(JSON.stringify(params)) +
                 '&callback=' + callbackName;
+    console.log('JSONP request:', url);
     window[callbackName] = function(data) {
+      console.log('JSONP callback fired', data);
       delete window[callbackName];
-      document.body.removeChild(script);
+      if (document.body.contains(script)) document.body.removeChild(script);
       resolve(data);
     };
-    script.onerror = () => {
+    script.onload = () => console.log('Script loaded, callback exists:', !!window[callbackName]);
+    script.onerror = (e) => {
+      console.error('JSONP error', e);
       delete window[callbackName];
-      document.body.removeChild(script);
+      if (document.body.contains(script)) document.body.removeChild(script);
       reject(new Error('JSONP failed'));
     };
     script.src = url;
     document.body.appendChild(script);
+    setTimeout(() => {
+      if (window[callbackName]) {
+        console.error('JSONP timeout - callback never fired');
+        delete window[callbackName];
+        reject(new Error('JSONP timeout'));
+      }
+    }, 10000);
   });
 }
 
