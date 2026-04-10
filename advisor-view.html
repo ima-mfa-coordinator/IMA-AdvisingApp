@@ -140,13 +140,10 @@ let currentAdvisor = '';
 let allStudents = [];
 
 async function api(action, params) {
-  const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action;
-  const r = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(params),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  return r.json();
+  const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(params));
+  const r = await fetch(url);
+  const text = await r.text();
+  return JSON.parse(text);
 }
 
 async function loadCourses() {
