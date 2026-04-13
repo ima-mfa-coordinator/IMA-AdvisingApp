@@ -3,474 +3,615 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Advising Scheduler — IMA MFA</title>
+<title>IMA MFA — Advising Sign-Up</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#1a1a18;--paper:#f5f2eb;--cream:#ede9df;--rule:#c8c2b4;--accent:#2d5a3d;--accent-light:#e8f0ea;--warn:#8b3a1a;--warn-light:#f5ece8;--muted:#7a7568;--blue:#2a5a8b;--blue-light:#e8f0f8; }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Mono',monospace;background:var(--paper);color:var(--ink);min-height:100vh}
-  .masthead{background:var(--ink);color:var(--paper);padding:28px 40px 24px;border-bottom:3px solid var(--accent);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
-  .masthead-title{font-family:'DM Serif Display',serif;font-size:26px;letter-spacing:-.5px;line-height:1.1}
-  .masthead-sub{font-size:11px;color:var(--rule);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
-  .masthead-week{font-size:11px;color:var(--rule);text-align:right}
-  .container{max-width:740px;margin:0 auto;padding:40px 24px 80px}
-  .steps{display:flex;margin-bottom:40px;border:1px solid var(--rule);background:var(--cream);overflow:hidden;border-radius:2px}
-  .step{flex:1;padding:12px 8px;text-align:center;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--rule);transition:all .2s}
-  .step:last-child{border-right:none}
-  .step.active{background:var(--ink);color:var(--paper)}
-  .step.done{background:var(--accent);color:var(--paper)}
-  .step-num{display:block;font-size:16px;font-family:'DM Serif Display',serif;margin-bottom:2px}
-  .card{background:white;border:1px solid var(--rule);border-radius:2px;padding:32px;margin-bottom:20px;box-shadow:2px 3px 0 var(--cream)}
-  .card-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:24px}
-  .section-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:6px}
-  .section-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:24px}
-  .field{margin-bottom:20px}
-  label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
-  label span{color:var(--warn)}
-  input,select{width:100%;padding:11px 14px;border:1px solid var(--rule);background:var(--paper);font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);border-radius:2px;transition:border-color .15s,background .15s;-webkit-appearance:none;appearance:none}
-  input:focus,select:focus{outline:none;border-color:var(--accent);background:white}
-  input.error{border-color:var(--warn);background:var(--warn-light)}
-  .error-msg{font-size:11px;color:var(--warn);margin-top:5px;display:none}
-  .error-msg.visible{display:block}
-  .advisor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-  .advisor-card{border:2px solid var(--rule);padding:16px;cursor:pointer;transition:all .15s;background:var(--paper);border-radius:2px;position:relative}
-  .advisor-card:hover{border-color:var(--accent);background:var(--accent-light)}
-  .advisor-card.selected{border-color:var(--accent);background:var(--accent-light)}
-  .advisor-card.selected::after{content:'✓';position:absolute;top:10px;right:12px;color:var(--accent);font-size:14px}
-  .advisor-name{font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:3px}
-  .advisor-role{font-size:10px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
-  .day-group{margin-bottom:24px}
-  .day-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px dashed var(--rule)}
-  .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
-  .slot{border:1px solid var(--rule);padding:9px 10px;cursor:pointer;text-align:center;font-size:12px;transition:all .12s;background:white;border-radius:2px;line-height:1.3}
-  .slot:hover:not(.taken):not(.break){border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
-  .slot.selected{background:var(--accent);color:white;border-color:var(--accent)}
-  .slot.taken{background:var(--cream);color:var(--rule);cursor:not-allowed;text-decoration:line-through}
-  .slot.break{background:var(--cream);color:var(--rule);cursor:default;font-style:italic;font-size:10px}
-  .no-slots{font-size:12px;color:var(--muted);padding:20px;text-align:center;border:1px dashed var(--rule);border-radius:2px}
-  /* COURSE PICKER */
-  .course-block{margin-bottom:28px}
-  .course-block-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
-  .course-block-title{font-size:14px;font-family:'DM Serif Display',serif}
-  .course-block-rule{font-size:10px;color:var(--muted);letter-spacing:.06em}
-  .course-counter{font-size:11px;color:var(--muted);margin-bottom:10px}
-  .course-counter .count{font-weight:500;color:var(--ink)}
-  .course-counter .count.maxed{color:var(--accent)}
-  .day-heading{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;border-bottom:1px dashed var(--rule);padding-bottom:4px}
-  .day-heading:first-child{margin-top:0}
-  .course-list{display:flex;flex-direction:column;gap:5px;margin-bottom:2px}
-  .course-row{border:1px solid var(--rule);padding:9px 13px;cursor:pointer;font-size:12px;transition:all .12s;background:white;border-radius:2px;display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:start;line-height:1.4}
-  .course-row:hover:not(.disabled){border-color:var(--accent);background:var(--accent-light)}
-  .course-row.selected{border-color:var(--accent);background:var(--accent-light)}
-  .course-row.disabled{opacity:.38;cursor:not-allowed}
-  .course-row.selected-1cr{border-color:var(--blue);background:var(--blue-light)}
-  .course-row.selected-1cr:hover:not(.disabled){border-color:var(--blue);background:var(--blue-light)}
-  .course-check{width:14px;height:14px;border:1.5px solid var(--rule);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;margin-top:1px;transition:all .12s}
-  .course-row.selected .course-check{background:var(--accent);border-color:var(--accent);color:white}
-  .course-row.selected-1cr .course-check{background:var(--blue);border-color:var(--blue);color:white}
-  .course-row-info{}
-  .course-row-name{font-size:12px;color:var(--ink)}
-  .course-row-meta{font-size:10px;color:var(--muted);margin-top:2px}
-  .course-row.selected .course-row-meta{color:var(--accent)}
-  .course-row.selected-1cr .course-row-meta{color:var(--blue)}
-  .divider{border:none;border-top:1px solid var(--rule);margin:24px 0}
-  /* BUTTONS */
-  .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;border-radius:2px;transition:all .15s}
-  .btn-primary{background:var(--ink);color:var(--paper)}
-  .btn-primary:hover{background:var(--accent)}
-  .btn-primary:disabled{background:var(--rule);cursor:not-allowed}
-  .btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--rule)}
-  .btn-secondary:hover{border-color:var(--ink);color:var(--ink)}
-  .btn-row{display:flex;gap:12px;margin-top:28px;align-items:center}
-  /* CONFIRM */
-  .confirm-table{width:100%;border-collapse:collapse;font-size:12.5px}
-  .confirm-table tr{border-bottom:1px solid var(--rule)}
-  .confirm-table tr:last-child{border-bottom:none}
-  .confirm-table td{padding:10px 4px;vertical-align:top}
-  .confirm-table td:first-child{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);width:160px;padding-right:16px}
-  .badge{display:inline-block;padding:2px 8px;font-size:10px;border-radius:2px;margin:2px 3px 2px 0}
-  .badge-3cr{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent)}
-  .badge-1cr{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue)}
-  /* SUCCESS */
-  .success-icon{width:64px;height:64px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px}
-  .success-card{text-align:center;padding:48px 32px}
-  .success-title{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:12px}
-  .success-desc{font-size:13px;color:var(--muted);line-height:1.7;max-width:420px;margin:0 auto 20px}
-  .meet-link-box{background:var(--accent-light);border:1px solid var(--accent);border-radius:2px;padding:16px 20px;margin:20px 0;font-size:12px;color:var(--accent);word-break:break-all}
-  .meet-link-box a{color:var(--accent)}
-  /* ALERTS */
-  .alert{padding:12px 16px;border-radius:2px;font-size:12px;margin-bottom:20px;border:1px solid;line-height:1.5}
-  .alert-info{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
-  .alert-warn{background:var(--warn-light);border-color:var(--warn);color:var(--warn)}
-  .reschedule-note{background:#fdf3e0;border:1px solid #e8a020;border-radius:2px;padding:12px 16px;font-size:12px;color:#7a4f00;margin-bottom:20px}
-  .page{display:none}
-  .page.active{display:block}
-  .hidden{display:none!important}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:500px){.advisor-grid{grid-template-columns:1fr}.masthead{padding:20px}.container{padding:24px 16px 60px}.card{padding:20px}}
+  :root {
+    --ink: #1a1a18;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --rule: #c8c2b4;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0ea;
+    --warn: #8b3a1a;
+    --muted: #7a7568;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Mono', monospace; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  .masthead {
+    background: var(--ink); color: var(--paper);
+    padding: 20px 32px; border-bottom: 3px solid var(--accent);
+  }
+  .masthead-title { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .masthead-sub { font-size: 10px; color: var(--rule); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+  .wrap { max-width: 640px; margin: 40px auto; padding: 0 20px 60px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .card {
+    background: white; border: 1px solid var(--rule);
+    border-radius: 2px; padding: 24px; margin-bottom: 16px;
+  }
+
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  input[type="text"], input[type="email"], select, textarea {
+    width: 100%; padding: 11px 14px;
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    border: 1px solid var(--rule); background: var(--paper);
+    border-radius: 2px; color: var(--ink);
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ink); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 11px 22px; font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; border: 1px solid transparent;
+    border-radius: 2px; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.8; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .btn-ghost { background: transparent; border-color: var(--rule); color: var(--ink); }
+
+  .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+
+  /* Step indicator */
+  .steps { display: flex; gap: 6px; margin-bottom: 24px; align-items: center; }
+  .step {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500; border: 1.5px solid var(--rule);
+    color: var(--muted); background: white;
+  }
+  .step.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .step.done { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+  .step-line { flex: 1; height: 1px; background: var(--rule); }
+
+  /* Slot grid */
+  .advisor-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .adv-tab {
+    padding: 8px 18px; font-family: 'DM Mono', monospace; font-size: 11px;
+    border: 1px solid var(--rule); border-radius: 2px; cursor: pointer;
+    background: white; color: var(--muted);
+    transition: background 0.1s, color 0.1s;
+  }
+  .adv-tab.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .day-label {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin: 14px 0 8px;
+  }
+  .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .slot {
+    padding: 10px 12px; border: 1px solid var(--rule); border-radius: 2px;
+    font-size: 12px; cursor: pointer; text-align: center;
+    background: white; color: var(--ink); transition: all 0.1s;
+  }
+  .slot:hover { border-color: var(--ink); }
+  .slot.selected { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .slot.taken { background: var(--cream); color: var(--muted); cursor: not-allowed; text-decoration: line-through; }
+  .slot.cutoff { background: #fff8f5; color: #c8a090; cursor: not-allowed; }
+  .slot-cutoff-note { font-size: 9px; display: block; color: #c8a090; margin-top: 2px; }
+
+  /* Course selection */
+  .section-head {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--cream); margin-bottom: 12px;
+  }
+  .course-check-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--rule);
+    border-radius: 2px; cursor: pointer; margin-bottom: 6px;
+    background: white; transition: all 0.1s;
+  }
+  .course-check-row:hover { border-color: var(--ink); }
+  .course-check-row.checked { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .course-check-row.checked-1cr { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+  .chk {
+    width: 16px; height: 16px; border: 1.5px solid var(--rule);
+    border-radius: 2px; flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center; font-size: 11px; margin-top: 1px;
+  }
+  .checked .chk { border-color: var(--paper); color: var(--paper); }
+  .checked-1cr .chk { border-color: var(--paper); color: var(--paper); }
+  .course-name { font-size: 12px; font-weight: 500; }
+  .course-prof { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+  .course-counter {
+    font-size: 11px; color: var(--muted); margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .course-block-rule { font-size: 10px; color: var(--muted); }
+
+  /* Confirm box */
+  .confirm-box { background: var(--cream); border-radius: 2px; padding: 16px; font-size: 12px; line-height: 1.7; }
+  .confirm-row { display: flex; gap: 10px; margin-bottom: 4px; }
+  .confirm-label { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); min-width: 100px; padding-top: 2px; }
+
+  /* Confirmation checkbox */
+  .confirm-check-box {
+    border: 1px solid var(--rule); border-radius: 2px;
+    padding: 14px; background: #fffdf8; margin-top: 14px;
+  }
+  .confirm-check-label {
+    display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  }
+  .confirm-check-label input[type="checkbox"] {
+    width: auto; flex-shrink: 0; margin-top: 3px; cursor: pointer;
+    accent-color: var(--ink);
+  }
+  .confirm-check-text { font-size: 12px; line-height: 1.5; color: var(--ink); }
+  .confirm-check-text strong { font-weight: 500; }
+
+  /* Success */
+  .success-box { text-align: center; padding: 32px 20px; }
+  .success-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none; }
+
+  .error-msg { color: var(--warn); font-size: 12px; margin-top: 8px; }
+  .info-note { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  @media (max-width: 600px) {
+    .wrap { margin: 20px auto; }
+    .card { padding: 18px; }
+  }
 </style>
 </head>
 <body>
+
 <div class="masthead">
-  <div>
-    <div class="masthead-title">Advising Sign-Up</div>
-    <div class="masthead-sub">IMA MFA · Summer + Fall 2026 Course Selection · Week of April 20–24</div>
-  </div>
-  <div class="masthead-week">20-min slots · Andrew & Betty<br>Zoom link included</div>
+  <div class="masthead-title">Advising Sign-Up</div>
+  <div class="masthead-sub">IMA MFA — Summer + Fall 2026</div>
 </div>
-<div class="container">
-  <div class="steps" id="stepBar">
-    <div class="step active" id="step1"><span class="step-num">1</span>Verify</div>
-    <div class="step" id="step2"><span class="step-num">2</span>Schedule</div>
-    <div class="step" id="step3"><span class="step-num">3</span>Courses</div>
-    <div class="step" id="step4"><span class="step-num">4</span>Confirm</div>
-  </div>
 
-  <!-- P1 -->
+<div class="wrap">
+
+  <!-- PAGE 1: EMPLID LOOKUP -->
   <div class="page active" id="page1">
+    <div class="steps">
+      <div class="step active">1</div><div class="step-line"></div>
+      <div class="step">2</div><div class="step-line"></div>
+      <div class="step">3</div><div class="step-line"></div>
+      <div class="step">4</div>
+    </div>
+    <div class="page-title">Find your record</div>
+    <div class="page-sub">Enter your EMPLID to get started. This is your 8-digit student ID number.</div>
     <div class="card">
-      <div class="card-label">Step 1 of 4 — Student Verification</div>
-      <div class="section-title">Enter your EMPLID</div>
-      <div class="section-desc">We'll look up your name and check if you already have a slot booked.</div>
       <div class="field">
-        <label>EMPLID <span>*</span></label>
-        <input type="text" id="emplidInput" placeholder="e.g. 24473181" maxlength="12" inputmode="numeric">
-        <div class="error-msg" id="emplid-error">EMPLID not found. Please check and try again, or contact your advisor.</div>
+        <label>EMPLID</label>
+        <input type="text" id="emplid" placeholder="e.g. 24473181" maxlength="10">
       </div>
-      <div id="studentFound" class="hidden">
-        <div class="alert alert-info" id="foundMsg"></div>
-        <div id="alreadyBooked" class="hidden">
-          <div class="alert alert-warn" id="bookedMsg"></div>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="startReschedule()">Reschedule my slot</button>
-            <button class="btn btn-secondary" onclick="cancelReschedule()">Keep my current slot</button>
-          </div>
-        </div>
+      <div id="lookupError" class="error-msg" style="display:none"></div>
+      <div id="studentFound" style="display:none; margin-top:12px; padding:12px; background:var(--accent-light); border-radius:2px; font-size:12px;">
+        <strong id="foundName"></strong><br>
+        <span id="foundStatus" style="color:var(--muted)"></span>
       </div>
-      <div class="btn-row" id="verifyBtnRow">
-        <button class="btn btn-primary" onclick="verifyEmplid()">
-          <span id="verifyBtnText">Look me up</span>
-          <span class="spinner hidden" id="verifySpinner"></span>
-        </button>
-      </div>
+    </div>
+    <div class="nav-row">
+      <span></span>
+      <button class="btn btn-primary" id="btnLookup" onclick="lookupStudent()">
+        <span id="lookupText">Look up</span>
+        <span id="lookupSpinner" class="spinner hidden"></span>
+      </button>
     </div>
   </div>
 
-  <!-- P2 -->
+  <!-- PAGE 2: SLOT SELECTION -->
   <div class="page" id="page2">
+    <div class="steps">
+      <div class="step done">✓</div><div class="step-line"></div>
+      <div class="step active">2</div><div class="step-line"></div>
+      <div class="step">3</div><div class="step-line"></div>
+      <div class="step">4</div>
+    </div>
+    <div class="page-title">Choose a time</div>
+    <div class="page-sub">Select an advisor and a 20-minute appointment slot. Appointments must be booked at least <strong>24 hours in advance</strong>.</div>
     <div class="card">
-      <div class="card-label">Step 2 of 4 — Choose Advisor & Time</div>
-      <div class="section-title">Pick your advisor</div>
-      <div id="rescheduleNote" class="hidden reschedule-note">⚠ You're rescheduling. Your current slot will be released when you confirm a new one.</div>
-      <div class="advisor-grid">
-        <div class="advisor-card" id="advisorAndrew" onclick="selectAdvisor('Andrew')">
-          <div class="advisor-name">Andrew</div>
-          <div class="advisor-role">Program Director</div>
-        </div>
-        <div class="advisor-card" id="advisorBetty" onclick="selectAdvisor('Betty')">
-          <div class="advisor-name">Betty</div>
-          <div class="advisor-role">Faculty Advisor</div>
-        </div>
+      <div class="advisor-tabs">
+        <button class="adv-tab on" id="tabAndrew" onclick="selectAdvisor('Andrew')">Andrew</button>
+        <button class="adv-tab" id="tabBetty" onclick="selectAdvisor('Betty')">Betty</button>
       </div>
-      <div id="slotArea" class="hidden">
-        <div class="section-title" style="font-size:17px;margin-bottom:6px">Select a time slot</div>
-        <div class="section-desc">20-minute meetings. All times Eastern.</div>
-        <div id="slotContainer"></div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="goToPage(1)">← Back</button>
-        <button class="btn btn-primary" id="slotNextBtn" onclick="goToPage(3)" disabled>Next →</button>
-      </div>
+      <div id="slotContent"><div style="font-size:12px;color:var(--muted)">Loading slots…</div></div>
+    </div>
+    <div id="page2Error" class="error-msg" style="display:none"></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goPage(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goPage(3)">Next →</button>
     </div>
   </div>
 
-  <!-- P3 -->
+  <!-- PAGE 3: COURSE INTERESTS -->
   <div class="page" id="page3">
+    <div class="steps">
+      <div class="step done">✓</div><div class="step-line"></div>
+      <div class="step done">✓</div><div class="step-line"></div>
+      <div class="step active">3</div><div class="step-line"></div>
+      <div class="step">4</div>
+    </div>
+    <div class="page-title">Course interests</div>
+    <div class="page-sub">Select the courses you're most interested in for Summer + Fall 2026. Your advisor will discuss these with you during your appointment.</div>
     <div class="card">
-      <div class="card-label">Step 3 of 4 — Course Interests</div>
-      <div class="section-title">Which courses interest you?</div>
-      <div class="section-desc">Select up to <strong>4 three-credit courses</strong> and up to <strong>3 one-credit workshops</strong> you'd like to discuss. Also enter your current credit count.</div>
-
-      <div class="field" style="max-width:220px;margin-bottom:28px">
-        <label>Current Credit Count <span>*</span></label>
-        <input type="number" id="creditCount" placeholder="e.g. 48" min="0" max="200">
-        <div class="error-msg" id="credit-error">Please enter your credit count.</div>
+      <div class="section-head">3-Credit Courses <span class="course-block-rule" style="float:right">Select up to 6</span></div>
+      <div class="course-counter">
+        <span>Selected:</span>
+        <span id="count3cr">0 / 6</span>
       </div>
-
-      <hr class="divider">
-
-      <!-- 3-CREDIT -->
-      <div class="course-block">
-        <div class="course-block-header">
-          <div class="course-block-title">3-Credit Courses — Fall 2026</div>
-          <div class="course-block-rule">Select up to 6</div>
-        </div>
-        <div class="course-counter">Selected: <span class="count" id="count3cr">0</span> / 6</div>
-        <div id="courseList3cr"></div>
+      <div id="courses3cr"></div>
+    </div>
+    <div class="card">
+      <div class="section-head">1-Credit Workshops <span class="course-block-rule" style="float:right">Select up to 3</span></div>
+      <div class="course-counter">
+        <span>Selected:</span>
+        <span id="count1cr">0 / 3</span>
       </div>
+      <div id="courses1cr"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goPage(2)">← Back</button>
+      <button class="btn btn-primary" onclick="goPage(4)">Next →</button>
+    </div>
+  </div>
 
-      <hr class="divider">
+  <!-- PAGE 4: CONFIRM -->
+  <div class="page" id="page4">
+    <div class="steps">
+      <div class="step done">✓</div><div class="step-line"></div>
+      <div class="step done">✓</div><div class="step-line"></div>
+      <div class="step done">✓</div><div class="step-line"></div>
+      <div class="step active">4</div>
+    </div>
+    <div class="page-title">Confirm your booking</div>
+    <div class="page-sub">Review your appointment details before confirming.</div>
+    <div class="card">
+      <div class="confirm-box" id="confirmBox"></div>
 
-      <!-- 1-CREDIT -->
-      <div class="course-block">
-        <div class="course-block-header">
-          <div class="course-block-title">1-Credit Workshops</div>
-          <div class="course-block-rule">Select up to 3</div>
-        </div>
-        <div class="course-counter">Selected: <span class="count" id="count1cr">0</span> / 3</div>
-        <div class="course-list" id="courseList1cr"></div>
-      </div>
-
-      <div class="error-msg" id="course-error" style="margin-top:4px">Please select at least one course.</div>
       <div class="field" style="margin-top:20px">
         <label>Notes or questions for your advisor (optional)</label>
-        <textarea id="studentNotes" placeholder="Anything you'd like to discuss or ask in advance…" style="width:100%;padding:11px 14px;border:1px solid var(--rule);background:var(--paper);font-family:'DM Mono',monospace;font-size:13px;border-radius:2px;resize:vertical;min-height:80px"></textarea>
+        <textarea id="studentNotes" placeholder="Anything you'd like to discuss or ask in advance…" style="min-height:80px"></textarea>
       </div>
 
-
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="goToPage(2)">← Back</button>
-        <button class="btn btn-primary" onclick="goToPage(4)">Review →</button>
+      <div class="confirm-check-box">
+        <label class="confirm-check-label">
+          <input type="checkbox" id="courseHistoryConfirm">
+          <span class="confirm-check-text">
+            I confirm that I will have my <strong>course history</strong> — a list of all IMA courses I have taken and am currently enrolled in — available during my advising appointment.
+          </span>
+        </label>
       </div>
+    </div>
+    <div id="page4Error" class="error-msg" style="display:none"></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goPage(3)">← Back</button>
+      <button class="btn btn-primary" id="submitBtn" onclick="submitBooking()">
+        <span id="submitText">Confirm booking</span>
+        <span id="submitSpinner" class="spinner hidden"></span>
+      </button>
     </div>
   </div>
 
-  <!-- P4 -->
-  <div class="page" id="page4">
+  <!-- SUCCESS -->
+  <div class="page" id="pageSuccess">
     <div class="card">
-      <div class="card-label">Step 4 of 4 — Review & Confirm</div>
-      <div class="section-title">Confirm your registration</div>
-      <div class="section-desc">Please review the details below before submitting.</div>
-      <table class="confirm-table" id="confirmTable"></table>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="goToPage(3)">← Edit</button>
-        <button class="btn btn-primary" onclick="submitRegistration()" id="submitBtn">
-          <span id="submitBtnText">Confirm & Book Slot</span>
-          <span class="spinner hidden" id="submitSpinner"></span>
-        </button>
+      <div class="success-box">
+        <div class="success-icon">✓</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:8px">You're booked!</div>
+        <div id="successMsg" style="font-size:12px;color:var(--muted);line-height:1.6;max-width:380px;margin:0 auto"></div>
       </div>
     </div>
   </div>
 
-  <!-- P5 -->
-  <div class="page" id="page5">
-    <div class="card success-card">
-      <div class="success-icon">✓</div>
-      <div class="success-title">You're booked!</div>
-      <div class="success-desc" id="successDesc"></div>
-      <div class="meet-link-box" id="meetLinkBox"></div>
-      <div class="success-desc">Use the Zoom link above to join your meeting at the scheduled time. Need to reschedule? Visit the booking portal again and enter your EMPLID.</div>
-    </div>
-  </div>
 </div>
 
 <script>
-const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwDKUxR9ws_uUOzTYVcmFD2IjUa7OAz5h0ArnUxfLJtZ6q7lonmHyGIH_K-aydSsDA8/exec' };
+const CONFIG = { APPS_SCRIPT_URL: 'YOUR_APPS_SCRIPT_URL_HERE' };
 
-// ── COURSE CATALOG — loaded dynamically from Google Sheet ─────
-let COURSES_3CR = [];
-let COURSES_1CR = [];
+const COURSES_3CR = [
+  {id:'IMA78041', name:'Blank Screen', prof:'Zach Nader'},
+  {id:'IMA78054', name:'Impact Producing', prof:'Cecilia Mejia'},
+  {id:'IMA70900', name:'History and Theory of Documentary', prof:'Reiko Tahara'},
+  {id:'IMA75000', name:'Emerging Media 1', prof:'Ricardo Miranda'},
+  {id:'IMA78087', name:'Digital Resistance', prof:'kara lynch'},
+  {id:'IMA78052', name:'Story Strategies', prof:'Andrew Lund'},
+  {id:'IMA78065', name:'Language to be Looked At', prof:'Andrew Demirjian'},
+  {id:'IMA77100', name:'Community Media and Advocacy & The Urban Environment', prof:'Amber Bemak'},
+  {id:'IMA75300', name:'Doc 2: The Short Film', prof:'Alex Mallis'},
+  {id:'IMA75100', name:'Documentary 1', prof:'Edwin Martinez'},
+  {id:'IMA78081', name:'Sound Environments', prof:'Hans Tammen'},
+  {id:'IMA76600', name:'Memory Chamber: 3D Environments for Interactive Media and Film', prof:'Poyen Wang'},
+  {id:'IMA78077', name:'Experimental Darkroom (Summer)', prof:'Christina Freeman'},
+  {id:'IMA78079', name:'Sound Design for Filmmakers (Summer)', prof:'David Briggs'},
+];
+const COURSES_1CR = [
+  {id:'IMA78302', name:'Lighting', prof:'Sean Hanley'},
+  {id:'IMA78313', name:'Premiere Editing and Post Production Workflow', prof:'Iris Devins'},
+  {id:'IMA78301', name:'Sound Recording', prof:'JT Takagi'},
+  {id:'IMA78360', name:'Impact Producing Workshop', prof:'Cecilia Mejia'},
+  {id:'IMA78349', name:'From Body to Movement: Performative Art and Film (Summer)', prof:'Yehui Zhao'},
+];
 
-async function loadCourses() {
-  try {
-    const res = await api('getCourses', {});
-    COURSES_3CR = res.courses3cr || [];
-    COURSES_1CR = res.courses1cr || [];
-  } catch(e) {
-    console.error('Could not load courses:', e);
-  }
-}
+let S = {
+  emplid: null, name: null,
+  advisor: 'Andrew', slotId: null, slotTime: null, slotDay: null,
+  courses3: [], courses1: [],
+  isRescheduling: false, existingSlotId: null
+};
 
-// ── STATE ──// ── STATE ──────────────────────────────────────────────────
-let S = { emplid:'', name:'', advisor:'', slot:null, courses3cr:[], courses1cr:[], credits:'', isRescheduling:false, existingSlotId:null, existingBooking:null };
-
-// ── BUILD COURSE LIST ──────────────────────────────────────
-function buildCourseList() {
-  // 3-credit by day
-  const container = document.getElementById('courseList3cr');
-  let currentDay = '';
-  COURSES_3CR.forEach(c => {
-    if (c.day !== currentDay) {
-      currentDay = c.day;
-      const h = document.createElement('div'); h.className = 'day-heading'; h.textContent = c.day;
-      container.appendChild(h);
-    }
-    container.appendChild(makeRow(c, '3cr'));
-  });
-  // 1-credit
-  const c1 = document.getElementById('courseList1cr');
-  COURSES_1CR.forEach(c => c1.appendChild(makeRow(c, '1cr')));
-}
-
-function makeRow(course, type) {
-  const div = document.createElement('div');
-  div.className = 'course-row'; div.id = 'row-' + course.id;
-  div.innerHTML = `<div class="course-check"></div><div class="course-row-info"><div class="course-row-name">${course.name}</div><div class="course-row-meta">${course.prof} · ${course.time}</div></div>`;
-  div.onclick = () => toggleRow(div, course, type);
-  return div;
-}
-
-function toggleRow(el, course, type) {
-  const isSelected = el.classList.contains('selected') || el.classList.contains('selected-1cr');
-  const arr = type === '3cr' ? S.courses3cr : S.courses1cr;
-  const max = type === '3cr' ? 6 : 3;
-  const countId = type === '3cr' ? 'count3cr' : 'count1cr';
-  const selClass = type === '3cr' ? 'selected' : 'selected-1cr';
-  const allIds = (type === '3cr' ? COURSES_3CR : COURSES_1CR).map(c => 'row-' + c.id);
-
-  if (!isSelected && arr.length >= max) return;
-
-  if (isSelected) {
-    el.classList.remove(selClass);
-    el.querySelector('.course-check').textContent = '';
-    const idx = arr.findIndex(c => c.id === course.id);
-    if (idx > -1) arr.splice(idx, 1);
-    allIds.forEach(id => { const o = document.getElementById(id); if (o) o.classList.remove('disabled'); });
-  } else {
-    el.classList.add(selClass);
-    el.querySelector('.course-check').textContent = '✓';
-    arr.push(course);
-  }
-  const count = document.getElementById(countId);
-  count.textContent = arr.length;
-  count.className = arr.length >= max ? 'count maxed' : 'count';
-  if (arr.length >= max) {
-    allIds.forEach(id => { const o = document.getElementById(id); if (o && !o.classList.contains('selected') && !o.classList.contains('selected-1cr')) o.classList.add('disabled'); });
-  }
-}
-
-// ── NAVIGATION ──────────────────────────────────────────────
-function goToPage(n) {
-  if (n === 3 && !validatePage2()) return;
-  if (n === 4 && !validatePage3()) return;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page' + n).classList.add('active');
-  document.querySelectorAll('.step').forEach((s, i) => { s.classList.remove('active','done'); if (i+1<n) s.classList.add('done'); if (i+1===n) s.classList.add('active'); });
-  if (n === 4) buildConfirm();
-  window.scrollTo({ top:0, behavior:'smooth' });
-}
-
-// ── PAGE 1 ──────────────────────────────────────────────────
-async function verifyEmplid() {
-  const val = document.getElementById('emplidInput').value.trim();
-  if (!val) { showErr('emplid-error','emplidInput'); return; }
-  setLoad(true,'verifyBtnText','verifySpinner');
-  try {
-    const res = await api('lookupStudent', { emplid: val });
-    if (!res.found) { showErr('emplid-error','emplidInput'); setLoad(false,'verifyBtnText','verifySpinner','Look me up'); return; }
-    S.emplid = val; S.name = res.name;
-    clrErr('emplid-error','emplidInput');
-    document.getElementById('foundMsg').textContent = `✓ Found: ${res.name}`;
-    document.getElementById('studentFound').classList.remove('hidden');
-    document.getElementById('verifyBtnRow').classList.add('hidden');
-    if (res.booked) {
-      S.existingBooking = res.booking; S.existingSlotId = res.slotId;
-      document.getElementById('bookedMsg').textContent = `You have a slot: ${res.booking.advisor} on ${res.booking.day} at ${res.booking.time}. Reschedule?`;
-      document.getElementById('alreadyBooked').classList.remove('hidden');
-    } else { setTimeout(() => goToPage(2), 500); }
-  } catch(e) { alert('Connection error. Please try again.'); }
-  setLoad(false,'verifyBtnText','verifySpinner','Look me up');
-}
-function startReschedule() { S.isRescheduling=true; document.getElementById('rescheduleNote').classList.remove('hidden'); goToPage(2); }
-function cancelReschedule() { document.getElementById('alreadyBooked').classList.add('hidden'); document.getElementById('foundMsg').textContent = `✓ Keeping your slot: ${S.existingBooking.advisor} · ${S.existingBooking.day} at ${S.existingBooking.time}`; }
-
-// ── PAGE 2 ──────────────────────────────────────────────────
-function selectAdvisor(name) {
-  S.advisor=name; S.slot=null;
-  document.querySelectorAll('.advisor-card').forEach(c=>c.classList.remove('selected'));
-  document.getElementById('advisor'+name).classList.add('selected');
-  document.getElementById('slotNextBtn').disabled=true;
-  loadSlots(name);
-}
-async function loadSlots(advisor) {
-  const area=document.getElementById('slotArea'), container=document.getElementById('slotContainer');
-  area.classList.remove('hidden');
-  container.innerHTML='<div style="font-size:12px;color:var(--muted);padding:16px">Loading available slots…</div>';
-  try { const res=await api('getSlots',{advisor}); renderSlots(res.days,res.takenSlots||[]); }
-  catch(e) { container.innerHTML='<div class="no-slots">Error loading. Please refresh.</div>'; }
-}
-function renderSlots(days,takenSlots) {
-  const c=document.getElementById('slotContainer');
-  if (!days||!days.length) { c.innerHTML='<div class="no-slots">No slots configured yet. Check back soon.</div>'; return; }
-  c.innerHTML='';
-  days.forEach(day => {
-    const g=document.createElement('div'); g.className='day-group';
-    g.innerHTML=`<div class="day-label">${day.label}</div><div class="slot-grid" id="sg-${day.id}"></div>`;
-    c.appendChild(g);
-    const grid=document.getElementById('sg-'+day.id);
-    day.slots.forEach(slot=>{
-      const div=document.createElement('div'); div.className='slot';
-      const sid=`${day.id}_${slot.time.replace(/[: ]/g,'')}`;
-      if (slot.isBreak) { div.classList.add('break'); div.textContent='— break —'; }
-      else if (takenSlots.includes(sid) && S.existingSlotId!==sid) { div.classList.add('taken'); div.textContent=slot.time; }
-      else { div.textContent=slot.time; div.onclick=()=>pickSlot(div,{day:day.label,time:slot.time,slotId:sid}); }
-      grid.appendChild(div);
-    });
-  });
-}
-function pickSlot(el,data) { document.querySelectorAll('.slot.selected').forEach(s=>s.classList.remove('selected')); el.classList.add('selected'); S.slot=data; document.getElementById('slotNextBtn').disabled=false; }
-function validatePage2() { if (!S.advisor){alert('Please select an advisor.');return false;} if (!S.slot){alert('Please select a time slot.');return false;} return true; }
-
-// ── PAGE 3 ──────────────────────────────────────────────────
-function validatePage3() {
-  let ok=true;
-  if (!document.getElementById('creditCount').value) { showErr('credit-error','creditCount'); ok=false; } else { clrErr('credit-error','creditCount'); S.credits=document.getElementById('creditCount').value; }
-  if (!S.courses3cr.length && !S.courses1cr.length) { document.getElementById('course-error').classList.add('visible'); ok=false; } else { document.getElementById('course-error').classList.remove('visible'); }
-  return ok;
-}
-
-// ── PAGE 4 ──────────────────────────────────────────────────
-function buildConfirm() {
-  const t=document.getElementById('confirmTable');
-  const b3=S.courses3cr.map(c=>`<span class="badge badge-3cr">${c.name}</span>`).join('');
-  const b1=S.courses1cr.map(c=>`<span class="badge badge-1cr">${c.name}</span>`).join('');
-  t.innerHTML=`
-    <tr><td>Student</td><td>${S.name}</td></tr>
-    <tr><td>EMPLID</td><td>${S.emplid}</td></tr>
-    <tr><td>Advisor</td><td>${S.advisor}</td></tr>
-    <tr><td>Date & Time</td><td>${S.slot.day} at ${S.slot.time}</td></tr>
-    <tr><td>Credits</td><td>${S.credits}</td></tr>
-    <tr><td>3-Credit Interests</td><td>${b3||'—'}</td></tr>
-    <tr><td>1-Credit Interests</td><td>${b1||'—'}</td></tr>
-  `;
-}
-
-// ── SUBMIT ──────────────────────────────────────────────────
-async function submitRegistration() {
-  setLoad(true,'submitBtnText','submitSpinner');
-  document.getElementById('submitBtn').disabled=true;
-  try {
-    const res=await api('bookSlot',{
-      emplid:S.emplid, studentName:S.name, advisor:S.advisor,
-      slotId:S.slot.slotId, slotDay:S.slot.day, slotTime:S.slot.time,
-      threeCreditCourses:S.courses3cr.map(c=>c.name),
-      oneCreditCourses:S.courses1cr.map(c=>c.name),
-      credits:S.credits, isRescheduling:S.isRescheduling, oldSlotId:S.existingSlotId||null,
-      notes:document.getElementById('studentNotes').value
-    });
-    if (res.success) {
-      document.getElementById('successDesc').textContent=`Your session with ${S.advisor} is confirmed for ${S.slot.day} at ${S.slot.time}.`;
-      document.getElementById('meetLinkBox').innerHTML=`🎥 Zoom: <a href="${res.meetLink}" target="_blank">${res.meetLink}</a>`;
-      document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
-      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-      document.getElementById('page5').classList.add('active');
-      window.scrollTo({top:0,behavior:'smooth'});
-    } else { alert(res.message||'Slot just taken. Please choose another.'); document.getElementById('submitBtn').disabled=false; setLoad(false,'submitBtnText','submitSpinner','Confirm & Book Slot'); }
-  } catch(e) { alert('Submission error. Please try again.'); document.getElementById('submitBtn').disabled=false; setLoad(false,'submitBtnText','submitSpinner','Confirm & Book Slot'); }
-}
-
-// ── UTILS ────────────────────────────────────────────────────
+// ── API ────────────────────────────────────────────────────
 async function api(action, params) {
   const url = CONFIG.APPS_SCRIPT_URL + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(params));
   const r = await fetch(url);
   return r.json();
 }
-function showErr(id,inp) { document.getElementById(id).classList.add('visible'); if(inp) document.getElementById(inp).classList.add('error'); }
-function clrErr(id,inp) { document.getElementById(id).classList.remove('visible'); if(inp) document.getElementById(inp).classList.remove('error'); }
-function setLoad(on,tid,sid,off) { document.getElementById(sid).classList.toggle('hidden',!on); if(!on&&off) document.getElementById(tid).textContent=off; }
-document.getElementById('emplidInput').addEventListener('keydown',e=>{if(e.key==='Enter')verifyEmplid();});
-loadCourses().then(() => buildCourseList());
+
+// ── PAGE NAV ───────────────────────────────────────────────
+function goPage(n) {
+  if (n === 3) {
+    // Validate slot selected
+    if (!S.slotId) {
+      document.getElementById('page2Error').textContent = 'Please select a time slot.';
+      document.getElementById('page2Error').style.display = 'block';
+      return;
+    }
+    document.getElementById('page2Error').style.display = 'none';
+    renderCourses();
+  }
+  if (n === 4) {
+    renderConfirm();
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page' + (n === 'success' ? 'Success' : n)).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── STUDENT LOOKUP ─────────────────────────────────────────
+async function lookupStudent() {
+  const emplid = document.getElementById('emplid').value.trim();
+  if (!emplid) { showLookupError('Please enter your EMPLID.'); return; }
+
+  document.getElementById('lookupText').textContent = 'Looking up…';
+  document.getElementById('lookupSpinner').classList.remove('hidden');
+  document.getElementById('btnLookup').disabled = true;
+  document.getElementById('lookupError').style.display = 'none';
+  document.getElementById('studentFound').style.display = 'none';
+
+  try {
+    const res = await api('lookupStudent', { emplid });
+    if (!res.found) {
+      showLookupError('EMPLID not found. Please check your number and try again.');
+    } else {
+      S.emplid = emplid;
+      S.name = res.name;
+      document.getElementById('foundName').textContent = res.name;
+
+      if (res.stage >= 1 && res.slot) {
+        S.isRescheduling = true;
+        S.existingSlotId = res.slotId;
+        document.getElementById('foundStatus').textContent = 'You have an existing booking: ' + res.slot.day + ' at ' + res.slot.time + ' with ' + res.advisor + '. You can reschedule below.';
+      } else {
+        document.getElementById('foundStatus').textContent = 'Ready to book your advising appointment.';
+      }
+
+      document.getElementById('studentFound').style.display = 'block';
+      loadSlots('Andrew');
+      setTimeout(() => goPage(2), 600);
+    }
+  } catch(e) {
+    showLookupError('Connection error. Please try again.');
+  }
+
+  document.getElementById('lookupText').textContent = 'Look up';
+  document.getElementById('lookupSpinner').classList.add('hidden');
+  document.getElementById('btnLookup').disabled = false;
+}
+
+function showLookupError(msg) {
+  const el = document.getElementById('lookupError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ── SLOTS ──────────────────────────────────────────────────
+let slotCache = {};
+
+async function loadSlots(advisor) {
+  if (slotCache[advisor]) { renderSlots(advisor, slotCache[advisor]); return; }
+  document.getElementById('slotContent').innerHTML = '<div style="font-size:12px;color:var(--muted)">Loading…</div>';
+  try {
+    const res = await api('getSlots', { advisor });
+    slotCache[advisor] = res;
+    renderSlots(advisor, res);
+  } catch(e) {
+    document.getElementById('slotContent').innerHTML = '<div style="color:var(--warn);font-size:12px">Error loading slots. Please refresh.</div>';
+  }
+}
+
+function renderSlots(advisor, data) {
+  const takenSlots = data.takenSlots || [];
+  const days = data.days || [];
+  const now = new Date();
+  const cutoffMs = 24 * 60 * 60 * 1000; // 24 hours
+
+  if (!days.length) {
+    document.getElementById('slotContent').innerHTML = '<div style="font-size:12px;color:var(--muted)">No slots available for ' + advisor + '.</div>';
+    return;
+  }
+
+  let html = '';
+  days.forEach(day => {
+    const visibleSlots = day.slots.filter(s => !s.isBreak);
+    if (!visibleSlots.length) return;
+    html += `<div class="day-label">${day.label}</div><div class="slot-grid">`;
+    visibleSlots.forEach(slot => {
+      const isTaken = takenSlots.includes(slot.id || (advisor + '_' + day.id + '_' + slot.time));
+      const slotId = slot.id || (advisor + '_' + day.id + '_' + slot.time);
+
+      // 24-hour cutoff check
+      let isPastCutoff = false;
+      try {
+        const slotDate = new Date(day.label + ' ' + slot.time + ' 2026');
+        if (!isNaN(slotDate.getTime())) {
+          isPastCutoff = (slotDate.getTime() - now.getTime()) < cutoffMs;
+        }
+      } catch(e) {}
+
+      const isSelected = S.slotId === slotId;
+
+      if (isTaken) {
+        html += `<div class="slot taken">${slot.time}</div>`;
+      } else if (isPastCutoff) {
+        html += `<div class="slot cutoff" title="Must book 24h in advance">${slot.time}<span class="slot-cutoff-note">24h cutoff</span></div>`;
+      } else {
+        html += `<div class="slot${isSelected ? ' selected' : ''}" onclick="selectSlot('${slotId}','${slot.time}','${day.label}','${advisor}')">${slot.time}</div>`;
+      }
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('slotContent').innerHTML = html || '<div style="font-size:12px;color:var(--muted)">No available slots.</div>';
+}
+
+function selectAdvisor(advisor) {
+  S.advisor = advisor;
+  S.slotId = null; S.slotTime = null; S.slotDay = null;
+  document.getElementById('tabAndrew').classList.toggle('on', advisor === 'Andrew');
+  document.getElementById('tabBetty').classList.toggle('on', advisor === 'Betty');
+  loadSlots(advisor);
+}
+
+function selectSlot(slotId, time, day, advisor) {
+  S.slotId = slotId; S.slotTime = time; S.slotDay = day; S.advisor = advisor;
+  // Re-render to show selection
+  if (slotCache[advisor]) renderSlots(advisor, slotCache[advisor]);
+}
+
+// ── COURSES ────────────────────────────────────────────────
+function renderCourses() {
+  const el3 = document.getElementById('courses3cr');
+  const el1 = document.getElementById('courses1cr');
+
+  el3.innerHTML = COURSES_3CR.map(c => {
+    const checked = S.courses3.includes(c.name);
+    return `<div class="course-check-row${checked ? ' checked' : ''}" onclick="toggleCourse(this,'${c.name}','3cr')">
+      <div class="chk">${checked ? '✓' : ''}</div>
+      <div><div class="course-name">${c.name}</div><div class="course-prof">${c.prof}</div></div>
+    </div>`;
+  }).join('');
+
+  el1.innerHTML = COURSES_1CR.map(c => {
+    const checked = S.courses1.includes(c.name);
+    return `<div class="course-check-row${checked ? ' checked-1cr' : ''}" onclick="toggleCourse(this,'${c.name}','1cr')">
+      <div class="chk">${checked ? '✓' : ''}</div>
+      <div><div class="course-name">${c.name}</div><div class="course-prof">${c.prof}</div></div>
+    </div>`;
+  }).join('');
+
+  updateCounters();
+}
+
+function toggleCourse(el, name, type) {
+  const max = type === '3cr' ? 6 : 3;
+  const arr = type === '3cr' ? S.courses3 : S.courses1;
+  const cls = type === '3cr' ? 'checked' : 'checked-1cr';
+  const idx = arr.indexOf(name);
+  if (idx > -1) {
+    arr.splice(idx, 1);
+    el.classList.remove(cls);
+    el.querySelector('.chk').textContent = '';
+  } else {
+    if (arr.length >= max) { alert(`You can select up to ${max} ${type === '3cr' ? '3-credit' : '1-credit'} courses.`); return; }
+    arr.push(name);
+    el.classList.add(cls);
+    el.querySelector('.chk').textContent = '✓';
+  }
+  updateCounters();
+}
+
+function updateCounters() {
+  document.getElementById('count3cr').textContent = S.courses3.length + ' / 6';
+  document.getElementById('count1cr').textContent = S.courses1.length + ' / 3';
+}
+
+// ── CONFIRM ────────────────────────────────────────────────
+function renderConfirm() {
+  const box = document.getElementById('confirmBox');
+  const all = [...S.courses3, ...S.courses1];
+  box.innerHTML = `
+    <div class="confirm-row"><div class="confirm-label">Name</div><div>${S.name}</div></div>
+    <div class="confirm-row"><div class="confirm-label">EMPLID</div><div>${S.emplid}</div></div>
+    <div class="confirm-row"><div class="confirm-label">Advisor</div><div>${S.advisor}</div></div>
+    <div class="confirm-row"><div class="confirm-label">Date & Time</div><div>${S.slotDay} · ${S.slotTime}</div></div>
+    <div class="confirm-row"><div class="confirm-label">Duration</div><div>20 minutes</div></div>
+    <div class="confirm-row"><div class="confirm-label">Courses</div><div>${all.length ? all.join('<br>') : 'None selected'}</div></div>
+  `;
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────
+async function submitBooking() {
+  if (!document.getElementById('courseHistoryConfirm').checked) {
+    document.getElementById('page4Error').textContent = 'Please confirm that you will have your course history available for your appointment.';
+    document.getElementById('page4Error').style.display = 'block';
+    return;
+  }
+  document.getElementById('page4Error').style.display = 'none';
+
+  document.getElementById('submitText').textContent = 'Booking…';
+  document.getElementById('submitSpinner').classList.remove('hidden');
+  document.getElementById('submitBtn').disabled = true;
+
+  try {
+    const res = await api('bookSlot', {
+      emplid: S.emplid,
+      advisor: S.advisor,
+      slotId: S.slotId,
+      slotTime: S.slotTime,
+      slotDay: S.slotDay,
+      courses3: S.courses3,
+      courses1: S.courses1,
+      notes: document.getElementById('studentNotes').value,
+      isRescheduling: S.isRescheduling,
+      oldSlotId: S.existingSlotId || null
+    });
+
+    if (res.success) {
+      document.getElementById('successMsg').innerHTML =
+        `Your appointment with <strong>${S.advisor}</strong> on <strong>${S.slotDay}</strong> at <strong>${S.slotTime}</strong> is confirmed.<br><br>` +
+        `${res.meetLink ? `Join via Google Meet: <a href="${res.meetLink}" style="color:var(--accent)">${res.meetLink}</a><br><br>` : ''}` +
+        `A confirmation email has been sent. Please bring your course history to your appointment.`;
+      goPage('success');
+    } else {
+      document.getElementById('page4Error').textContent = res.message || 'Error booking. Please go back and try another slot.';
+      document.getElementById('page4Error').style.display = 'block';
+      document.getElementById('submitText').textContent = 'Confirm booking';
+      document.getElementById('submitSpinner').classList.add('hidden');
+      document.getElementById('submitBtn').disabled = false;
+    }
+  } catch(e) {
+    document.getElementById('page4Error').textContent = 'Connection error. Please try again.';
+    document.getElementById('page4Error').style.display = 'block';
+    document.getElementById('submitText').textContent = 'Confirm booking';
+    document.getElementById('submitSpinner').classList.add('hidden');
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
+
+// Allow Enter key on EMPLID field
+document.getElementById('emplid').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') lookupStudent();
+});
 </script>
 </body>
 </html>
