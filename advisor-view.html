@@ -158,6 +158,17 @@
   .met-label { font-size: 11px; color: var(--accent); font-weight: 500; }
 
   .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 12px; }
+
+  .fill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .fill-card { background: white; border: 1px solid var(--rule); border-radius: 2px; padding: 14px; }
+  .fill-name { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+  .fill-prof { font-size: 10px; color: var(--muted); margin-bottom: 10px; }
+  .fill-bar-wrap { background: var(--cream); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+  .fill-bar { height: 100%; border-radius: 3px; background: var(--accent); }
+  .fill-bar.amber { background: var(--amber); }
+  .fill-bar.warn { background: var(--warn); }
+  .fill-counts { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+  .fill-credit-tag { display: inline-block; padding: 1px 6px; font-size: 9px; background: var(--cream); color: var(--muted); border-radius: 2px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -177,10 +188,15 @@
       <div class="masthead-title">Advising</div>
       <div class="masthead-advisor" id="advisorLabel"></div>
     </div>
-    <button class="switch-btn" onclick="switchAdvisor()">Switch advisor</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="switch-btn" onclick="switchTab('students')" id="tabStudents" style="opacity:1">My Students</button>
+      <button class="switch-btn" onclick="switchTab('fill')" id="tabFill">Class Fill</button>
+      <button class="switch-btn" onclick="switchAdvisor()">Switch advisor</button>
+    </div>
   </div>
   <div class="content">
-    <div id="studentList"><div class="empty-state">Loading your appointments…</div></div>
+    <div id="viewStudents"><div id="studentList"><div class="empty-state">Loading your appointments…</div></div></div>
+    <div id="viewFill" style="display:none"><div id="fillContent"><div class="empty-state">Loading class fill…</div></div></div>
   </div>
 </div>
 
@@ -237,6 +253,41 @@ function switchAdvisor() {
   allStudents = [];
 }
 
+function switchTab(tab) {
+  document.getElementById('viewStudents').style.display = tab === 'students' ? 'block' : 'none';
+  document.getElementById('viewFill').style.display = tab === 'fill' ? 'block' : 'none';
+  document.getElementById('tabStudents').style.opacity = tab === 'students' ? '1' : '0.5';
+  document.getElementById('tabFill').style.opacity = tab === 'fill' ? '1' : '0.5';
+}
+
+function renderFill(students) {
+  const counts = {};
+  students.forEach(s => {
+    [...(s.courseInterests||[]),...(s.courseInterests1||[])].forEach(c => {
+      if (!counts[c]) counts[c] = { interested: 0, confirmed: 0 };
+      counts[c].interested++;
+    });
+    (s.finalCourses||[]).forEach(c => {
+      if (!counts[c]) counts[c] = { interested: 0, confirmed: 0 };
+      counts[c].confirmed++;
+    });
+  });
+  const allCourses = [...COURSES_3CR, ...COURSES_1CR];
+  document.getElementById('fillContent').innerHTML = '<div class="fill-grid">' + allCourses.map(course => {
+    const c = counts[course.name] || { interested: 0, confirmed: 0 };
+    const cap = 15, pct = Math.min(100, Math.round((c.interested / cap) * 100));
+    const barClass = pct >= 90 ? 'warn' : pct >= 70 ? 'amber' : '';
+    const creditTag = COURSES_1CR.find(x => x.id === course.id) ? '1 credit' : '3 credits';
+    return `<div class="fill-card">
+      <div class="fill-credit-tag">${creditTag}</div>
+      <div class="fill-name">${course.name}</div>
+      <div class="fill-prof">${course.prof}</div>
+      <div class="fill-bar-wrap"><div class="fill-bar ${barClass}" style="width:${pct}%"></div></div>
+      <div class="fill-counts"><span>${c.interested} interested</span><span>${c.confirmed} confirmed</span></div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
 async function loadStudents() {
   try {
     const res = await api('getAdminData', {});
@@ -247,6 +298,7 @@ async function loadStudents() {
         return a.slotTime < b.slotTime ? -1 : 1;
       });
     renderStudents();
+    renderFill(res.students || []);
   } catch(e) {
     document.getElementById('studentList').innerHTML = '<div class="empty-state">Error loading. Please refresh.</div>';
   }
