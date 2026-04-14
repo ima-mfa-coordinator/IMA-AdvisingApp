@@ -157,7 +157,7 @@ let COURSES_1CR = [];
 
 let sel3 = [], sel1 = [];
 const params = new URLSearchParams(window.location.search);
-const token = params.get('t'), emplid = params.get('e');
+const token = params.get('token'), emplid = params.get('emplid');
 
 async function loadCourses() {
   try {
