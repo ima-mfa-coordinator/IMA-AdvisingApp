@@ -152,23 +152,35 @@
 <script>
 const CONFIG = { APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwDKUxR9ws_uUOzTYVcmFD2IjUa7OAz5h0ArnUxfLJtZ6q7lonmHyGIH_K-aydSsDA8/exec' };
 
-let COURSES_3CR = [];
-let COURSES_1CR = [];
+const COURSES_3CR = [
+  {id:'IMA78041', name:'Blank Screen', prof:'Zach Nader', day:'MONDAYS', time:'Mon 2:10–5:00pm'},
+  {id:'IMA78054', name:'Impact Producing', prof:'Cecilia Mejia', day:'MONDAYS', time:'TBD'},
+  {id:'IMA70900', name:'History and Theory of Documentary', prof:'Reiko Tahara', day:'MONDAYS', time:'Mon 6:00–9:50pm'},
+  {id:'IMA75000', name:'Emerging Media 1', prof:'Ricardo Miranda', day:'TUESDAYS', time:'Tue 2:00–5:30pm'},
+  {id:'IMA78087', name:'Digital Resistance', prof:'kara lynch', day:'TUESDAYS', time:'Tue 6:00–9:00pm · Online'},
+  {id:'IMA78052', name:'Story Strategies', prof:'Andrew Lund', day:'WEDNESDAYS', time:'Wed 10:00am–1:00pm'},
+  {id:'IMA78065', name:'Language to be Looked At', prof:'Andrew Demirjian', day:'WEDNESDAYS', time:'TBD'},
+  {id:'IMA77100', name:'Community Media and Advocacy & The Urban Environment', prof:'Amber Bemak', day:'WEDNESDAYS', time:'TBD'},
+  {id:'IMA75300', name:'Doc 2: The Short Film', prof:'Alex Mallis', day:'THURSDAYS', time:'TBD'},
+  {id:'IMA75100', name:'Documentary 1', prof:'Edwin Martinez', day:'THURSDAYS', time:'TBD'},
+  {id:'IMA78081', name:'Sound Environments', prof:'Hans Tammen', day:'THURSDAYS', time:'TBD'},
+  {id:'IMA76600', name:'Memory Chamber: 3D Environments for Interactive Media and Film', prof:'Poyen Wang', day:'THURSDAYS', time:'TBD'},
+  {id:'IMA78077', name:'Experimental Darkroom (Summer)', prof:'Christina Freeman', day:'SUMMER', time:'TBD'},
+  {id:'IMA78079', name:'Sound Design for Filmmakers (Summer)', prof:'David Briggs', day:'SUMMER', time:'TBD'},
+];
+const COURSES_1CR = [
+  {id:'IMA78302', name:'Lighting', prof:'Sean Hanley', time:'TBD'},
+  {id:'IMA78313', name:'Premiere Editing and Post Production Workflow', prof:'Iris Devins', time:'TBD'},
+  {id:'IMA78301', name:'Sound Recording', prof:'JT Takagi', time:'TBD'},
+  {id:'IMA78360', name:'Impact Producing Workshop', prof:'Cecilia Mejia', time:'TBD'},
+  {id:'IMA78349', name:'From Body to Movement: Performative Art and Film (Summer)', prof:'Yehui Zhao', time:'TBD'},
+];
 
 let sel3 = [], sel1 = [];
-const params = new URLSearchParams(window.location.search);
-const token = params.get('t'), emplid = params.get('e');
-
-async function loadCourses() {
-  try {
-    const res = await api('getCourses', {});
-    COURSES_3CR = res.courses3cr || [];
-    COURSES_1CR = res.courses1cr || [];
-  } catch(e) { console.error('Could not load courses:', e); }
-}
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token'), emplid = urlParams.get('emplid');
 
 async function init() {
-  await loadCourses();
   if (!token || !emplid) { showPage('pageError'); return; }
   try {
     const res = await api('getPostMeetingData', { token, emplid });
