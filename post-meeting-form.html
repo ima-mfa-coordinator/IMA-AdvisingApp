@@ -104,9 +104,9 @@
       <div class="course-block">
         <div class="course-block-header">
           <div class="course-block-title">1-Credit Workshops</div>
-          <div class="course-block-rule">Select up to 3</div>
+          <div class="course-block-rule">Select up to 5</div>
         </div>
-        <div class="course-counter">Selected: <span id="c1count">0</span> / 3</div>
+        <div class="course-counter">Selected: <span id="c1count">0</span> / 5</div>
         <div id="form1crList"></div>
       </div>
 
@@ -241,7 +241,7 @@ function toggle3(el, name) {
 
 function toggle1(el, name) {
   const isSelected = el.classList.contains('sel1');
-  if (!isSelected && sel1.length >= 3) return;
+  if (!isSelected && sel1.length >= 5) return;
   if (isSelected) { el.classList.remove('sel1'); el.querySelector('.course-check').textContent = ''; sel1 = sel1.filter(n=>n!==name); document.querySelectorAll('[id^="fr1-"]').forEach(o=>o.classList.remove('disabled')); }
   else { el.classList.add('sel1'); el.querySelector('.course-check').textContent = '✓'; sel1.push(name); }
   document.getElementById('c1count').textContent = sel1.length;
