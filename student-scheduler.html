@@ -589,7 +589,7 @@ async function submitBooking() {
     if (res.success) {
       document.getElementById('successMsg').innerHTML =
         `Your appointment with <strong>${S.advisor}</strong> on <strong>${S.slotDay}</strong> at <strong>${S.slotTime}</strong> is confirmed.<br><br>` +
-        `${res.meetLink ? `Join via Google Meet: <a href="${res.meetLink}" style="color:var(--accent)">${res.meetLink}</a><br><br>` : ''}` +
+        `${res.meetLink ? `Join via Zoom: <a href="${res.meetLink}" style="color:var(--accent)">${res.meetLink}</a><br><br>` : ''}` +
         `A confirmation email has been sent. Please bring your course history to your appointment.`;
       goPage('success');
     } else {
