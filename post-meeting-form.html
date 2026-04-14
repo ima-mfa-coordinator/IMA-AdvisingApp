@@ -245,7 +245,7 @@ function toggle1(el, name) {
   if (isSelected) { el.classList.remove('sel1'); el.querySelector('.course-check').textContent = ''; sel1 = sel1.filter(n=>n!==name); document.querySelectorAll('[id^="fr1-"]').forEach(o=>o.classList.remove('disabled')); }
   else { el.classList.add('sel1'); el.querySelector('.course-check').textContent = '✓'; sel1.push(name); }
   document.getElementById('c1count').textContent = sel1.length;
-  if (sel1.length >= 3) document.querySelectorAll('[id^="fr1-"]:not(.sel1)').forEach(o=>o.classList.add('disabled'));
+  if (sel1.length >= 5) document.querySelectorAll('[id^="fr1-"]:not(.sel1)').forEach(o=>o.classList.add('disabled'));
 }
 
 async function submitSelection() {
