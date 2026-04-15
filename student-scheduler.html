@@ -260,6 +260,10 @@
       </div>
       <div id="courses1cr"></div>
     </div>
+    <div class="field" style="margin-top:24px">
+  <label style="font-size:12px;letter-spacing:.08em;font-weight:600">TOTAL CREDITS COMPLETED <span style="color:red">*</span></label>
+  <input type="number" id="creditCount" min="0" max="60" placeholder="e.g. 18" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:4px;margin-top:6px;" required>
+</div>
     <div class="nav-row">
       <button class="btn btn-ghost" onclick="goPage(2)">← Back</button>
       <button class="btn btn-primary" onclick="goPage(4)">Next →</button>
@@ -278,10 +282,7 @@
     <div class="page-sub">Review your appointment details before confirming.</div>
     <div class="card">
       <div class="confirm-box" id="confirmBox"></div>
-<div class="field" style="margin-top:20px">
-  <label>Total credits completed so far <span style="color:red">*</span></label>
-  <input type="number" id="creditCount" min="0" max="60" placeholder="e.g. 18" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:4px;" required>
-</div>
+
       <div class="field" style="margin-top:20px">
         <label>Notes or questions for your advisor (optional)</label>
         <textarea id="studentNotes" placeholder="Anything you'd like to discuss or ask in advance…" style="min-height:80px"></textarea>
