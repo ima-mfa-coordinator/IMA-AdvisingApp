@@ -278,7 +278,10 @@
     <div class="page-sub">Review your appointment details before confirming.</div>
     <div class="card">
       <div class="confirm-box" id="confirmBox"></div>
-
+<div class="field" style="margin-top:20px">
+  <label>Total credits completed so far <span style="color:red">*</span></label>
+  <input type="number" id="creditCount" min="0" max="60" placeholder="e.g. 18" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:4px;" required>
+</div>
       <div class="field" style="margin-top:20px">
         <label>Notes or questions for your advisor (optional)</label>
         <textarea id="studentNotes" placeholder="Anything you'd like to discuss or ask in advance…" style="min-height:80px"></textarea>
@@ -567,6 +570,12 @@ async function submitBooking() {
     return;
   }
   document.getElementById('page4Error').style.display = 'none';
+  const creditCount = document.getElementById('creditCount').value;
+if (!creditCount) {
+  document.getElementById('page4Error').textContent = 'Please enter your credit count.';
+  document.getElementById('page4Error').style.display = 'block';
+  return;
+}
 
   document.getElementById('submitText').textContent = 'Booking…';
   document.getElementById('submitSpinner').classList.remove('hidden');
@@ -582,7 +591,8 @@ async function submitBooking() {
       courses3: S.courses3,
       courses1: S.courses1,
       notes: document.getElementById('studentNotes').value,
-      isRescheduling: S.isRescheduling,
+     credits: document.getElementById('creditCount').value,
+isRescheduling: S.isRescheduling,
       oldSlotId: S.existingSlotId || null
     });
 
