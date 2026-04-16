@@ -358,7 +358,14 @@ function renderSchedule(students, slots) {
   // Build lookup: slotId → student
   const bookingMap = {};
   students.forEach(s => {
-    if (s.slotId) bookingMap[s.slotId] = s;
+    if (s.advisor && s.slotDay && s.slotTime) {
+      const adv = s.advisor;
+      const dayMatch = (slots[adv] || []).find(d => d.label === s.slotDay);
+      if (dayMatch) {
+        const key = adv + '_' + dayMatch.id + '_' + s.slotTime;
+        bookingMap[key] = s;
+      }
+    }
   });
 
   const ADVISORS = ['Andrew', 'Betty'];
