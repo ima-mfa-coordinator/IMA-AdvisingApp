@@ -360,7 +360,12 @@ function renderSchedule(students, slots) {
   students.forEach(s => {
     if (s.advisor && s.slotDay && s.slotTime) {
       const adv = s.advisor;
-      const dayMatch = (slots[adv] || []).find(d => d.label === s.slotDay);
+      const dayMatch = (slots[adv] || []).find(d =>
+        d.label === s.slotDay ||
+        d.label.includes(s.slotDay) ||
+        s.slotDay.includes(d.label) ||
+        d.label.replace(/[^a-zA-Z0-9]/g,'').toLowerCase() === s.slotDay.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()
+      );
       if (dayMatch) {
         const key = adv + '_' + dayMatch.id + '_' + s.slotTime;
         bookingMap[key] = s;
@@ -506,7 +511,7 @@ async function loadStudents() {
 
     renderStudents();
     renderFill(students);
-    renderSchedule(students, allSlots);
+    renderSchedule(students.filter(s => s.stage >= 1), allSlots);
   } catch(e) {
     document.getElementById('studentList').innerHTML = '<div class="empty-state">Error loading. Please refresh.</div>';
   }
