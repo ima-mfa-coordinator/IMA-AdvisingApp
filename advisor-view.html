@@ -507,8 +507,10 @@ async function loadStudents() {
     allStudents = students
       .filter(s => s.advisor === currentAdvisor && s.stage >= 1)
       .sort((a, b) => {
-        if (a.slotDay !== b.slotDay) return a.slotDay < b.slotDay ? -1 : 1;
-        return a.slotTime < b.slotTime ? -1 : 1;
+        const parseDay = d => new Date(d + ' 2026');
+        const parseTime = (d, t) => new Date(d + ' ' + t + ' 2026');
+        if (a.slotDay !== b.slotDay) return parseDay(a.slotDay) - parseDay(b.slotDay);
+        return parseTime(a.slotDay, a.slotTime) - parseTime(b.slotDay, b.slotTime);
       });
 
     renderStudents();
