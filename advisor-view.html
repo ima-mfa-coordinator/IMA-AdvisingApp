@@ -376,19 +376,20 @@ function renderSchedule(students, slots) {
   const ADVISORS = ['Andrew', 'Betty'];
   const DAYS = ['mon_apr20','tue_apr21','wed_apr22','thu_apr23','fri_apr24'];
   const DAY_LABELS = { mon_apr20:'Mon Apr 20', tue_apr21:'Tue Apr 21', wed_apr22:'Wed Apr 22', thu_apr23:'Thu Apr 23', fri_apr24:'Fri Apr 24' };
+  // Betty has split day IDs for Wednesday — map canonical day → all matching slot day IDs
+  const ADV_DAY_IDS = {
+    Andrew: { mon_apr20:['mon_apr20'], tue_apr21:['tue_apr21'], wed_apr22:['wed_apr22'], thu_apr23:['thu_apr23','thu_apr23_eve'], fri_apr24:['fri_apr24'] },
+    Betty:  { mon_apr20:['mon_apr20'], tue_apr21:['tue_apr21'], wed_apr22:['wed_apr22_am','wed_apr22_pm'], thu_apr23:['thu_apr23'], fri_apr24:['fri_apr24'] }
+  };
 
-  // Collect all unique times across all advisors/days (excluding breaks, deduplicated)
   const timeSet = new Set();
-  const slotMap = {}; // key: "advisor|dayId|time" → slot obj
-  const breakSet = new Set(); // "advisor|dayId|time"
+  const slotMap = {};
 
   ADVISORS.forEach(adv => {
     (slots[adv] || []).forEach(day => {
       day.slots.forEach(sl => {
-        const key = adv + '|' + day.id + '|' + sl.time;
-        slotMap[key] = sl;
-        if (sl.isBreak) breakSet.add(adv + '|' + day.id + '|' + sl.time);
-        else timeSet.add(sl.time);
+        slotMap[adv + '|' + day.id + '|' + sl.time] = sl;
+        if (!sl.isBreak) timeSet.add(sl.time);
       });
     });
   });
@@ -441,25 +442,26 @@ function renderSchedule(students, slots) {
     html += `<div class="cal-time">${time}</div>`;
 
     DAYS.forEach(dayId => {
-      ADVISORS.forEach((adv, ai) => {
-        const day = (slots[adv] || []).find(d => d.id === dayId);
-        if (!day) {
-          html += `<div class="cal-cell is-empty"></div>`;
-          return;
+      ADVISORS.forEach((adv) => {
+        const dayIds = (ADV_DAY_IDS[adv] && ADV_DAY_IDS[adv][dayId]) || [dayId];
+        let slot = null, foundDayId = null;
+        for (const did of dayIds) {
+          const d = (slots[adv] || []).find(x => x.id === did);
+          if (d) { const s = d.slots.find(sl => !sl.isBreak && sl.time === time); if (s) { slot = s; foundDayId = did; break; } }
         }
-        const slot = day.slots.find(sl => !sl.isBreak && sl.time === time);
         if (!slot) {
-          // Check if this time is a break for this advisor/day
-          const isBreak = day.slots.some(sl => sl.isBreak && sl.time === time);
-          html += `<div class="cal-cell ${isBreak ? 'is-break' : 'is-empty'}">
-            ${isBreak ? '<span class="cal-cell-name break-label">break</span>' : ''}
-          </div>`;
+          let isBreak = false;
+          for (const did of dayIds) {
+            const d = (slots[adv] || []).find(x => x.id === did);
+            if (d && d.slots.some(sl => sl.isBreak && sl.time === time)) { isBreak = true; break; }
+          }
+          html += `<div class="cal-cell ${isBreak ? 'is-break' : 'is-empty'}">${isBreak ? '<span class="cal-cell-name break-label">break</span>' : ''}</div>`;
           return;
         }
 
         stats[adv].total++;
-        const slotId = adv + '_' + dayId + '_' + time;
-        const student = bookingMap[slotId] || (slot.bookedBy ? { name: slot.bookedBy, stage: 1 } : null);
+        const key = adv + '_' + foundDayId + '_' + time;
+        const student = bookingMap[key] || (slot.bookedBy ? { name: slot.bookedBy, stage: 1 } : null);
 
         if (student) {
           const isMet = student.stage >= 2;
