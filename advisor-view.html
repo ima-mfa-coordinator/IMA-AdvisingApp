@@ -360,16 +360,16 @@ function renderSchedule(students, slots) {
   students.forEach(s => {
     if (s.advisor && s.slotDay && s.slotTime) {
       const adv = s.advisor;
-      const dayMatch = (slots[adv] || []).find(d =>
-        d.label === s.slotDay ||
-        d.label.includes(s.slotDay) ||
-        s.slotDay.includes(d.label) ||
-        d.label.replace(/[^a-zA-Z0-9]/g,'').toLowerCase() === s.slotDay.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()
-      );
-      if (dayMatch) {
+      // Normalize: remove (Morning)/(Evening), expand day abbreviations, lowercase
+      const expandDay = str => str.replace(/\s*\(.*?\)/g,'').trim()
+        .replace(/^Mon\b/,'Monday').replace(/^Tue\b/,'Tuesday').replace(/^Wed\b/,'Wednesday')
+        .replace(/^Thu\b/,'Thursday').replace(/^Fri\b/,'Friday').toLowerCase();
+      const norm = expandDay(s.slotDay);
+      const dayMatches = (slots[adv] || []).filter(d => expandDay(d.label) === norm);
+      dayMatches.forEach(dayMatch => {
         const key = adv + '_' + dayMatch.id + '_' + s.slotTime;
         bookingMap[key] = s;
-      }
+      });
     }
   });
 
