@@ -43,6 +43,7 @@
     background: var(--ink); color: var(--paper);
     padding: 16px 28px; border-bottom: 3px solid var(--accent);
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap;
   }
   .masthead-left { display: flex; align-items: center; gap: 16px; }
   .masthead-title { font-family: 'DM Serif Display', serif; font-size: 20px; }
@@ -57,7 +58,7 @@
   }
   .switch-btn:hover { border-color: white; }
 
-  .content { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+  .content { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
 
   .day-section { margin-bottom: 32px; }
   .day-heading {
@@ -168,6 +169,50 @@
   .fill-bar.warn { background: var(--warn); }
   .fill-counts { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
   .fill-credit-tag { display: inline-block; padding: 1px 6px; font-size: 9px; background: var(--cream); color: var(--muted); border-radius: 2px; margin-bottom: 8px; }
+
+  /* ── SCHEDULE TAB ── */
+  .sched-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .sched-wrap { grid-template-columns: 1fr; } }
+
+  .sched-advisor-block { }
+  .sched-advisor-title {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 500; color: var(--paper); background: var(--ink);
+    padding: 8px 14px; border-radius: 2px 2px 0 0; margin-bottom: 0;
+  }
+  .sched-day-block { border: 1px solid var(--rule); border-top: none; background: white; }
+  .sched-day-block:first-of-type { border-top: 1px solid var(--rule); }
+  .sched-day-label {
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); background: var(--cream);
+    padding: 6px 12px; border-bottom: 1px solid var(--rule);
+  }
+  .sched-slot {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 12px; border-bottom: 1px solid var(--cream); font-size: 11px;
+  }
+  .sched-slot:last-child { border-bottom: none; }
+  .sched-slot.is-break { opacity: 0.4; font-style: italic; }
+  .sched-slot-time { color: var(--muted); width: 72px; flex-shrink: 0; }
+  .sched-slot-name { flex: 1; font-size: 11px; color: var(--ink); }
+  .sched-slot-name.open { color: var(--muted); font-style: italic; }
+  .sched-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-left: 8px; }
+  .sched-dot.open { background: var(--cream); border: 1px solid var(--rule); }
+  .sched-dot.booked { background: var(--amber); }
+  .sched-dot.met { background: var(--accent); }
+
+  .sched-legend {
+    display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+    font-size: 10px; color: var(--muted);
+  }
+  .sched-legend-item { display: flex; align-items: center; gap: 5px; }
+  .sched-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .sched-summary {
+    font-size: 10px; color: var(--muted); padding: 8px 12px;
+    background: var(--cream); border-top: 1px solid var(--rule);
+    display: flex; gap: 16px;
+  }
 </style>
 </head>
 <body>
@@ -187,15 +232,17 @@
       <div class="masthead-title">Advising</div>
       <div class="masthead-advisor" id="advisorLabel"></div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="switch-btn" onclick="switchTab('students')" id="tabStudents" style="opacity:1">My Students</button>
       <button class="switch-btn" onclick="switchTab('fill')" id="tabFill">Class Fill</button>
+      <button class="switch-btn" onclick="switchTab('schedule')" id="tabSchedule">Full Schedule</button>
       <button class="switch-btn" onclick="switchAdvisor()">Switch advisor</button>
     </div>
   </div>
   <div class="content">
     <div id="viewStudents"><div id="studentList"><div class="empty-state">Loading your appointments…</div></div></div>
     <div id="viewFill" style="display:none"><div id="fillContent"><div class="empty-state">Loading class fill…</div></div></div>
+    <div id="viewSchedule" style="display:none"><div id="schedContent"><div class="empty-state">Loading schedule…</div></div></div>
   </div>
 </div>
 
@@ -228,6 +275,7 @@ const COURSES_1CR = [
 
 let currentAdvisor = null;
 let allStudents = [];
+let allSlots = {};
 let saveTimers = {};
 
 async function api(action, params) {
@@ -250,13 +298,15 @@ function switchAdvisor() {
   document.getElementById('studentList').innerHTML = '<div class="empty-state">Loading your appointments…</div>';
   currentAdvisor = null;
   allStudents = [];
+  allSlots = {};
 }
 
 function switchTab(tab) {
-  document.getElementById('viewStudents').style.display = tab === 'students' ? 'block' : 'none';
-  document.getElementById('viewFill').style.display = tab === 'fill' ? 'block' : 'none';
-  document.getElementById('tabStudents').style.opacity = tab === 'students' ? '1' : '0.5';
-  document.getElementById('tabFill').style.opacity = tab === 'fill' ? '1' : '0.5';
+  ['students','fill','schedule'].forEach(t => {
+    document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = tab === t ? 'block' : 'none';
+    const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) btn.style.opacity = tab === t ? '1' : '0.5';
+  });
 }
 
 function renderFill(students) {
@@ -287,17 +337,93 @@ function renderFill(students) {
   }).join('') + '</div>';
 }
 
+function renderSchedule(students, slots) {
+  // Build a lookup: slotId → student
+  const bookingMap = {};
+  students.forEach(s => {
+    if (s.slotId && s.advisor) {
+      bookingMap[s.slotId] = s;
+    }
+  });
+
+  const advisors = ['Andrew', 'Betty'];
+  let html = '<div class="sched-legend">';
+  html += '<div class="sched-legend-item"><div class="sched-legend-dot" style="background:var(--cream);border:1px solid var(--rule)"></div> Open</div>';
+  html += '<div class="sched-legend-item"><div class="sched-legend-dot" style="background:var(--amber)"></div> Booked</div>';
+  html += '<div class="sched-legend-item"><div class="sched-legend-dot" style="background:var(--accent)"></div> Met</div>';
+  html += '</div>';
+  html += '<div class="sched-wrap">';
+
+  advisors.forEach(advisor => {
+    const days = (slots[advisor] || []);
+    let totalSlots = 0, bookedSlots = 0;
+
+    let advisorHtml = `<div class="sched-advisor-block">`;
+    advisorHtml += `<div class="sched-advisor-title">${advisor}</div>`;
+
+    days.forEach(day => {
+      const bookableSlots = day.slots.filter(sl => !sl.isBreak);
+      totalSlots += bookableSlots.length;
+
+      advisorHtml += `<div class="sched-day-block">`;
+      advisorHtml += `<div class="sched-day-label">${day.label}</div>`;
+
+      day.slots.forEach(slot => {
+        if (slot.isBreak) {
+          advisorHtml += `<div class="sched-slot is-break"><span class="sched-slot-time">${slot.time}</span><span class="sched-slot-name" style="color:var(--rule)">— break —</span></div>`;
+          return;
+        }
+
+        const slotId = advisor + '_' + day.id + '_' + slot.time;
+        const student = bookingMap[slotId] || slot.bookedBy && { name: slot.bookedBy, stage: 1 };
+        let dotClass = 'open', nameHtml = '<span class="sched-slot-name open">Open</span>';
+
+        if (student) {
+          bookedSlots++;
+          dotClass = student.stage >= 2 ? 'met' : 'booked';
+          nameHtml = `<span class="sched-slot-name">${student.name}</span>`;
+        }
+
+        advisorHtml += `<div class="sched-slot">
+          <span class="sched-slot-time">${slot.time}</span>
+          ${nameHtml}
+          <div class="sched-dot ${dotClass}"></div>
+        </div>`;
+      });
+
+      advisorHtml += `</div>`; // sched-day-block
+    });
+
+    const openSlots = totalSlots - bookedSlots;
+    advisorHtml += `<div class="sched-summary">
+      <span>${bookedSlots} booked</span>
+      <span>${openSlots} open</span>
+      <span>${totalSlots} total</span>
+    </div>`;
+    advisorHtml += `</div>`; // sched-advisor-block
+    html += advisorHtml;
+  });
+
+  html += '</div>';
+  document.getElementById('schedContent').innerHTML = html;
+}
+
 async function loadStudents() {
   try {
     const res = await api('getAdminData', {});
-    allStudents = (res.students || [])
+    const students = res.students || [];
+    allSlots = res.slots || {};
+
+    allStudents = students
       .filter(s => s.advisor === currentAdvisor && s.stage >= 1)
       .sort((a, b) => {
         if (a.slotDay !== b.slotDay) return a.slotDay < b.slotDay ? -1 : 1;
         return a.slotTime < b.slotTime ? -1 : 1;
       });
+
     renderStudents();
-    renderFill(res.students || []);
+    renderFill(students);
+    renderSchedule(students, allSlots);
   } catch(e) {
     document.getElementById('studentList').innerHTML = '<div class="empty-state">Error loading. Please refresh.</div>';
   }
