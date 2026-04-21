@@ -117,6 +117,7 @@
   .course-check-row.checked-1cr { background: #1a3a5a; color: white; border-color: #1a3a5a; }
   .course-check-row.interested { border-color: var(--amber); background: #fffbf0; }
   .course-check-row.checked.interested { border-color: var(--accent); background: var(--accent); }
+  .course-check-row.checked-1cr.interested { border-color: #1a3a5a; background: #1a3a5a; }
   .chk {
     width: 14px; height: 14px; border: 1.5px solid var(--rule); border-radius: 2px;
     flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -188,7 +189,6 @@
     background: var(--rule);
     gap: 1px;
   }
-  /* columns: time axis + 5 days × 2 advisors */
   .cal-grid { grid-template-columns: 64px repeat(10, 1fr); }
 
   .cal-header {
@@ -354,12 +354,10 @@ function renderFill(students) {
 }
 
 function renderSchedule(students, slots) {
-  // Build lookup: slotId → student
   const bookingMap = {};
   students.forEach(s => {
     if (s.advisor && s.slotDay && s.slotTime) {
       const adv = s.advisor;
-      // Normalize: remove (Morning)/(Evening), expand day abbreviations, lowercase
       const expandDay = str => str.replace(/\s*\(.*?\)/g,'').trim()
         .replace(/^Mon\b/,'Monday').replace(/^Tue\b/,'Tuesday').replace(/^Wed\b/,'Wednesday')
         .replace(/^Thu\b/,'Thursday').replace(/^Fri\b/,'Friday').toLowerCase();
@@ -375,7 +373,6 @@ function renderSchedule(students, slots) {
   const ADVISORS = ['Andrew', 'Betty'];
   const DAYS = ['mon_apr20','tue_apr21','wed_apr22','thu_apr23','fri_apr24'];
   const DAY_LABELS = { mon_apr20:'Mon Apr 20', tue_apr21:'Tue Apr 21', wed_apr22:'Wed Apr 22', thu_apr23:'Thu Apr 23', fri_apr24:'Fri Apr 24' };
-  // Betty has split day IDs for Wednesday — map canonical day → all matching slot day IDs
   const ADV_DAY_IDS = {
     Andrew: { mon_apr20:['mon_apr20'], tue_apr21:['tue_apr21'], wed_apr22:['wed_apr22'], thu_apr23:['thu_apr23','thu_apr23_eve'], fri_apr24:['fri_apr24'] },
     Betty:  { mon_apr20:['mon_apr20'], tue_apr21:['tue_apr21'], wed_apr22:['wed_apr22_am','wed_apr22_pm'], thu_apr23:['thu_apr23'], fri_apr24:['fri_apr24'] }
@@ -393,7 +390,6 @@ function renderSchedule(students, slots) {
     });
   });
 
-  // Sort times
   function parseTime(t) {
     const [time, ampm] = t.split(' ');
     let [h, m] = time.split(':').map(Number);
@@ -403,19 +399,8 @@ function renderSchedule(students, slots) {
   }
   const times = [...timeSet].sort((a,b) => parseTime(a) - parseTime(b));
 
-  // Check if a given day has any break at/around a time for an advisor
-  function getBreakBefore(adv, dayId, time) {
-    const day = (slots[adv] || []).find(d => d.id === dayId);
-    if (!day) return false;
-    const idx = day.slots.findIndex(sl => !sl.isBreak && sl.time === time);
-    if (idx > 0 && day.slots[idx - 1].isBreak) return day.slots[idx - 1].time;
-    return false;
-  }
-
-  // Stats
   const stats = { Andrew: {total:0, booked:0, met:0}, Betty: {total:0, booked:0, met:0} };
 
-  // Build HTML
   let html = '<div class="sched-legend">';
   html += '<span style="font-size:10px;color:var(--muted);margin-right:4px">Andrew:</span>';
   html += '<div class="sched-legend-item"><div class="sched-legend-dot" style="background:#2d5a3d"></div> column</div>';
@@ -429,14 +414,12 @@ function renderSchedule(students, slots) {
 
   html += '<div class="sched-outer"><div class="cal-grid">';
 
-  // Header row: corner + 5 days × 2 advisors
   html += '<div class="cal-header time-corner"></div>';
   DAYS.forEach(dayId => {
     html += `<div class="cal-header advisor-a"><div class="day-name">${DAY_LABELS[dayId]}</div><div class="advisor-name">Andrew</div></div>`;
     html += `<div class="cal-header advisor-b"><div class="day-name">${DAY_LABELS[dayId]}</div><div class="advisor-name">Betty</div></div>`;
   });
 
-  // Time rows
   times.forEach(time => {
     html += `<div class="cal-time">${time}</div>`;
 
@@ -478,9 +461,8 @@ function renderSchedule(students, slots) {
     });
   });
 
-  html += '</div></div>'; // cal-grid, sched-outer
+  html += '</div></div>';
 
-  // Totals
   html += '<div class="sched-totals">';
   ADVISORS.forEach(adv => {
     const s = stats[adv];
@@ -632,11 +614,26 @@ function toggleCard(emplid) {
   document.getElementById('card-' + emplid).classList.toggle('open');
 }
 
+// ── FIXED toggleCourse ──
+// Bug was: starred (interested) 1-cr courses would go blank when clicked because
+// the 'interested' class was left on while 'checked-1cr' was added, causing a CSS conflict.
+// Fix: remove 'interested' when checking, restore it when unchecking if student was originally interested.
 function toggleCourse(el, emplid, name, type) {
   const cls = type === '3cr' ? 'checked' : 'checked-1cr';
   const wasChecked = el.classList.contains(cls);
-  if (wasChecked) { el.classList.remove(cls); el.querySelector('.chk').textContent = ''; }
-  else { el.classList.add(cls); el.querySelector('.chk').textContent = '✓'; }
+
+  if (wasChecked) {
+    el.classList.remove(cls);
+    el.querySelector('.chk').textContent = '';
+    // Restore interested highlight if student originally expressed interest
+    const s = allStudents.find(x => String(x.emplid) === String(emplid));
+    const interestList = type === '3cr' ? (s?.courseInterests||[]) : (s?.courseInterests1||[]);
+    if (interestList.includes(name)) el.classList.add('interested');
+  } else {
+    el.classList.add(cls);
+    el.classList.remove('interested'); // prevent CSS conflict that caused blank card
+    el.querySelector('.chk').textContent = '✓';
+  }
   saveCourses(emplid);
 }
 
