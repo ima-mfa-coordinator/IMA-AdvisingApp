@@ -129,7 +129,7 @@
 
   .one-cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 5px; }
 
-  .notes-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .notes-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 640px) { .notes-row { grid-template-columns: 1fr; } }
 
   .note-field label {
@@ -583,14 +583,13 @@ function renderCard(s) {
       <div class="sec-label" style="margin-top:14px">1-Credit Workshops</div>
       <div class="one-cr-grid" id="grid1-${s.emplid}">${courses1html}</div>
 
+      ${s.advisorNotes ? `
+        <div class="sec-label" style="margin-top:18px">Student's Notes for Advisor</div>
+        <div style="font-size:11px;color:var(--ink);line-height:1.6;padding:10px 12px;background:var(--cream);border-radius:2px;border:1px solid var(--rule);white-space:pre-wrap;">${s.advisorNotes}</div>
+      ` : ''}
+
       <div class="sec-label" style="margin-top:18px">Notes</div>
       <div class="notes-row">
-        <div class="note-field">
-          <label>Meeting Notes</label>
-          <textarea class="note-ta" data-field="advisorNotes" data-emplid="${s.emplid}"
-            placeholder="Notes from this meeting…">${s.advisorNotes||''}</textarea>
-          <div class="save-ind" id="ind-advisorNotes-${s.emplid}"></div>
-        </div>
         <div class="note-field">
           <label>Program Feedback</label>
           <textarea class="note-ta" data-field="programFeedback" data-emplid="${s.emplid}"
