@@ -189,7 +189,6 @@
     background: var(--rule);
     gap: 1px;
   }
-  .cal-grid { grid-template-columns: 64px repeat(10, 1fr); }
 
   .cal-header {
     background: var(--ink); color: var(--paper);
@@ -340,8 +339,8 @@ function renderFill(students) {
   const allCourses = [...COURSES_3CR, ...COURSES_1CR];
   document.getElementById('fillContent').innerHTML = '<div class="fill-grid">' + allCourses.map(course => {
     const c = counts[course.name] || { interested: 0, confirmed: 0 };
-    const cap = 15, pct = Math.min(100, Math.round((c.interested / cap) * 100));
-    const barClass = pct >= 90 ? 'warn' : pct >= 70 ? 'amber' : '';
+    const cap = 15, pct = Math.min(100, Math.round((Math.max(c.interested, c.confirmed) / cap) * 100));
+    const barClass = pct >= 90 ? 'warn' : pct >= 65 ? 'amber' : '';
     const creditTag = COURSES_1CR.find(x => x.id === course.id) ? '1 credit' : '3 credits';
     return `<div class="fill-card">
       <div class="fill-credit-tag">${creditTag}</div>
@@ -353,40 +352,53 @@ function renderFill(students) {
   }).join('') + '</div>';
 }
 
+// ── DYNAMIC SCHEDULE RENDERER ──
+// Builds entirely from allSlots returned by the API — no hardcoded days.
 function renderSchedule(students, slots) {
+
+  // Build booking lookup: "Advisor_dayId_time" → student
   const bookingMap = {};
   students.forEach(s => {
-    if (s.advisor && s.slotDay && s.slotTime) {
-      const adv = s.advisor;
-      const expandDay = str => str.replace(/\s*\(.*?\)/g,'').trim()
-        .replace(/^Mon\b/,'Monday').replace(/^Tue\b/,'Tuesday').replace(/^Wed\b/,'Wednesday')
-        .replace(/^Thu\b/,'Thursday').replace(/^Fri\b/,'Friday').toLowerCase();
-      const norm = expandDay(s.slotDay);
-      const dayMatches = (slots[adv] || []).filter(d => expandDay(d.label) === norm);
-      dayMatches.forEach(dayMatch => {
-        const key = adv + '_' + dayMatch.id + '_' + s.slotTime;
-        bookingMap[key] = s;
-      });
-    }
+    if (!s.advisor || !s.slotDay || !s.slotTime) return;
+    const normLabel = s.slotDay.trim().toLowerCase();
+    const advDays = slots[s.advisor] || [];
+    advDays.forEach(day => {
+      if (day.label.trim().toLowerCase() === normLabel) {
+        bookingMap[s.advisor + '_' + day.id + '_' + s.slotTime] = s;
+      }
+    });
   });
 
   const ADVISORS = ['Andrew', 'Betty'];
-  const DAYS = ['mon_apr20','tue_apr21','wed_apr22','thu_apr23','fri_apr24'];
-  const DAY_LABELS = { mon_apr20:'Mon Apr 20', tue_apr21:'Tue Apr 21', wed_apr22:'Wed Apr 22', thu_apr23:'Thu Apr 23', fri_apr24:'Fri Apr 24' };
-  const ADV_DAY_IDS = {
-    Andrew: { mon_apr20:['mon_apr20'], tue_apr21:['tue_apr21'], wed_apr22:['wed_apr22'], thu_apr23:['thu_apr23','thu_apr23_eve'], fri_apr24:['fri_apr24'] },
-    Betty:  { mon_apr20:['mon_apr20'], tue_apr21:['tue_apr21'], wed_apr22:['wed_apr22_am','wed_apr22_pm'], thu_apr23:['thu_apr23'], fri_apr24:['fri_apr24'] }
-  };
 
-  const timeSet = new Set();
-  const slotMap = {};
-
+  // Collect all unique day labels (in slot order, preserving first appearance)
+  // Group day entries by their label so same-day blocks from one advisor merge under one column
+  const dayLabelOrder = [];
+  const dayLabelsSeen = new Set();
   ADVISORS.forEach(adv => {
     (slots[adv] || []).forEach(day => {
-      day.slots.forEach(sl => {
-        slotMap[adv + '|' + day.id + '|' + sl.time] = sl;
-        if (!sl.isBreak) timeSet.add(sl.time);
-      });
+      if (!dayLabelsSeen.has(day.label)) {
+        dayLabelsSeen.add(day.label);
+        dayLabelOrder.push(day.label);
+      }
+    });
+  });
+
+  if (!dayLabelOrder.length) {
+    document.getElementById('schedContent').innerHTML = '<div class="empty-state">No availability slots found.</div>';
+    return;
+  }
+
+  // For each advisor+dayLabel, collect all matching day blocks
+  function getDayBlocks(adv, label) {
+    return (slots[adv] || []).filter(d => d.label.trim().toLowerCase() === label.trim().toLowerCase());
+  }
+
+  // Collect all times across all slots
+  const timeSet = new Set();
+  ADVISORS.forEach(adv => {
+    (slots[adv] || []).forEach(day => {
+      day.slots.forEach(sl => { if (!sl.isBreak) timeSet.add(sl.time); });
     });
   });
 
@@ -397,8 +409,9 @@ function renderSchedule(students, slots) {
     if (ampm === 'AM' && h === 12) h = 0;
     return h * 60 + m;
   }
-  const times = [...timeSet].sort((a,b) => parseTime(a) - parseTime(b));
+  const times = [...timeSet].sort((a, b) => parseTime(a) - parseTime(b));
 
+  const numCols = dayLabelOrder.length * ADVISORS.length;
   const stats = { Andrew: {total:0, booked:0, met:0}, Betty: {total:0, booked:0, met:0} };
 
   let html = '<div class="sched-legend">';
@@ -412,31 +425,40 @@ function renderSchedule(students, slots) {
   html += '<div class="sched-legend-item"><div class="sched-legend-dot" style="background:var(--accent)"></div> Met</div>';
   html += '</div>';
 
-  html += '<div class="sched-outer"><div class="cal-grid">';
+  html += `<div class="sched-outer"><div class="cal-grid" style="grid-template-columns: 64px repeat(${numCols}, 1fr);">`;
 
+  // Header row
   html += '<div class="cal-header time-corner"></div>';
-  DAYS.forEach(dayId => {
-    html += `<div class="cal-header advisor-a"><div class="day-name">${DAY_LABELS[dayId]}</div><div class="advisor-name">Andrew</div></div>`;
-    html += `<div class="cal-header advisor-b"><div class="day-name">${DAY_LABELS[dayId]}</div><div class="advisor-name">Betty</div></div>`;
+  dayLabelOrder.forEach(label => {
+    ADVISORS.forEach((adv, ai) => {
+      html += `<div class="cal-header ${ai === 0 ? 'advisor-a' : 'advisor-b'}">
+        <div class="day-name">${label}</div>
+        <div class="advisor-name">${adv}</div>
+      </div>`;
+    });
   });
 
+  // Time rows
   times.forEach(time => {
     html += `<div class="cal-time">${time}</div>`;
-
-    DAYS.forEach(dayId => {
-      ADVISORS.forEach((adv) => {
-        const dayIds = (ADV_DAY_IDS[adv] && ADV_DAY_IDS[adv][dayId]) || [dayId];
-        let slot = null, foundDayId = null;
-        for (const did of dayIds) {
-          const d = (slots[adv] || []).find(x => x.id === did);
-          if (d) { const s = d.slots.find(sl => !sl.isBreak && sl.time === time); if (s) { slot = s; foundDayId = did; break; } }
+    dayLabelOrder.forEach(label => {
+      ADVISORS.forEach(adv => {
+        const blocks = getDayBlocks(adv, label);
+        if (!blocks.length) {
+          html += `<div class="cal-cell is-empty"></div>`;
+          return;
         }
+
+        // Check for break across any block
+        const isBreak = blocks.some(b => b.slots.some(sl => sl.isBreak && sl.time === time));
+        // Find matching bookable slot
+        let slot = null, foundDayId = null;
+        for (const b of blocks) {
+          const s = b.slots.find(sl => !sl.isBreak && sl.time === time);
+          if (s) { slot = s; foundDayId = b.id; break; }
+        }
+
         if (!slot) {
-          let isBreak = false;
-          for (const did of dayIds) {
-            const d = (slots[adv] || []).find(x => x.id === did);
-            if (d && d.slots.some(sl => sl.isBreak && sl.time === time)) { isBreak = true; break; }
-          }
           html += `<div class="cal-cell ${isBreak ? 'is-break' : 'is-empty'}">${isBreak ? '<span class="cal-cell-name break-label">break</span>' : ''}</div>`;
           return;
         }
@@ -449,13 +471,13 @@ function renderSchedule(students, slots) {
           const isMet = student.stage >= 2;
           if (isMet) stats[adv].met++;
           else stats[adv].booked++;
+          const parts = student.name.split(' ');
+          const displayName = parts[0] + (parts.length > 1 ? ' ' + parts[parts.length - 1] : '');
           html += `<div class="cal-cell ${isMet ? 'met' : 'booked'}">
-            <div class="cal-cell-name">${student.name.split(' ')[0]} ${student.name.split(' ').slice(-1)[0]}</div>
+            <div class="cal-cell-name">${displayName}</div>
           </div>`;
         } else {
-          html += `<div class="cal-cell open">
-            <span class="cal-cell-name open-label">open</span>
-          </div>`;
+          html += `<div class="cal-cell open"><span class="cal-cell-name open-label">open</span></div>`;
         }
       });
     });
@@ -613,10 +635,6 @@ function toggleCard(emplid) {
   document.getElementById('card-' + emplid).classList.toggle('open');
 }
 
-// ── FIXED toggleCourse ──
-// Bug was: starred (interested) 1-cr courses would go blank when clicked because
-// the 'interested' class was left on while 'checked-1cr' was added, causing a CSS conflict.
-// Fix: remove 'interested' when checking, restore it when unchecking if student was originally interested.
 function toggleCourse(el, emplid, name, type) {
   const cls = type === '3cr' ? 'checked' : 'checked-1cr';
   const wasChecked = el.classList.contains(cls);
@@ -624,13 +642,12 @@ function toggleCourse(el, emplid, name, type) {
   if (wasChecked) {
     el.classList.remove(cls);
     el.querySelector('.chk').textContent = '';
-    // Restore interested highlight if student originally expressed interest
     const s = allStudents.find(x => String(x.emplid) === String(emplid));
     const interestList = type === '3cr' ? (s?.courseInterests||[]) : (s?.courseInterests1||[]);
     if (interestList.includes(name)) el.classList.add('interested');
   } else {
     el.classList.add(cls);
-    el.classList.remove('interested'); // prevent CSS conflict that caused blank card
+    el.classList.remove('interested');
     el.querySelector('.chk').textContent = '✓';
   }
   saveCourses(emplid);
