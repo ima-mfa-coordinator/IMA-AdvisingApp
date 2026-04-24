@@ -59,15 +59,7 @@
   .switch-btn:hover { border-color: white; }
 
   .content { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
-  #viewSchedule {
-    position: relative;
-    margin-left: calc(-50vw + 50%);
-    margin-right: calc(-50vw + 50%);
-    padding: 28px 20px 60px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  #schedContent { min-width: max-content; }
+
 
   .day-section { margin-bottom: 32px; }
   .day-heading {
@@ -267,8 +259,8 @@
   <div class="content">
     <div id="viewStudents"><div id="studentList"><div class="empty-state">Loading your appointments…</div></div></div>
     <div id="viewFill" style="display:none"><div id="fillContent"><div class="empty-state">Loading class fill…</div></div></div>
-    <div id="viewSchedule" style="display:none"><div id="schedContent"><div class="empty-state">Loading schedule…</div></div></div>
   </div>
+  <div id="viewSchedule" style="display:none; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:28px 20px 60px;"><div id="schedContent"><div class="empty-state">Loading schedule…</div></div></div>
 </div>
 
 <script>
