@@ -59,8 +59,15 @@
   .switch-btn:hover { border-color: white; }
 
   .content { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
-  #viewSchedule { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  #schedContent { min-width: 100%; }
+  #viewSchedule {
+    position: relative;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding: 28px 20px 60px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #schedContent { min-width: max-content; }
 
   .day-section { margin-bottom: 32px; }
   .day-heading {
