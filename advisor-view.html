@@ -59,6 +59,8 @@
   .switch-btn:hover { border-color: white; }
 
   .content { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+  #viewSchedule { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #schedContent { min-width: 100%; }
 
   .day-section { margin-bottom: 32px; }
   .day-heading {
@@ -172,7 +174,7 @@
   .fill-credit-tag { display: inline-block; padding: 1px 6px; font-size: 9px; background: var(--cream); color: var(--muted); border-radius: 2px; margin-bottom: 8px; }
 
   /* ── SCHEDULE TAB ── */
-  .sched-outer { overflow-x: auto; }
+  .sched-outer { overflow-x: visible; }
   .sched-legend {
     display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
     font-size: 10px; color: var(--muted); align-items: center;
