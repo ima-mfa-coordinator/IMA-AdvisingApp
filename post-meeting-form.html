@@ -78,7 +78,7 @@
   <div class="page" id="pageForm">
     <div class="card">
       <div class="card-label">Post-Meeting — Final Course Selection</div>
-      <div class="student-banner">Welcome back, <strong id="studentNameDisplay"></strong>. Please confirm the courses you'd like to be pre-registered for.</div>
+      <div class="student-banner">Hi <strong id="studentNameDisplay"></strong> — your advisor has pre-selected your courses below. Update them if needed, then confirm.</div>
       <div class="deadline-box" id="deadlineBox"></div>
 
       <div class="interests-section">
@@ -173,10 +173,6 @@ async function init() {
   try {
     const res = await api('getPostMeetingData', { token, emplid });
     if (!res.valid) { showPage('pageError'); return; }
-    if (res.alreadySubmitted) {
-      document.getElementById('alreadyDoneDesc').textContent = `You already submitted your final selection on ${res.submittedDate}. Your courses: ${res.finalCourses.join(', ')}.`;
-      showPage('pageAlreadyDone'); return;
-    }
     document.getElementById('studentNameDisplay').textContent = res.name || res.studentName || '';
     document.getElementById('deadlineBox').textContent = '⏰ Please submit your final course selections by Monday, May 4th at 12:00pm.';
 
@@ -188,21 +184,17 @@ async function init() {
     // Build course lists (highlighting original interests)
     const orig3 = new Set(res.threeCreditInterests||[]);
     const orig1 = new Set(res.oneCreditInterests||[]);
-    buildList3cr(orig3);
-    buildList1cr(orig1);
+    // Pre-select any courses already saved (by advisor or previous submission)
+    const preSelected = new Set(res.finalCourses||[]);
+    buildList3cr(orig3, preSelected);
+    buildList1cr(orig1, preSelected);
     showPage('pageForm');
   } catch(e) { showPage('pageError'); }
 }
 
-function buildList3cr(highlighted) {
+function buildList3cr(highlighted, preSelected) {
   const container = document.getElementById('form3crList');
   let curDay = '';
-  // Put highlighted first within each day
-  const sorted = [...COURSES_3CR].sort((a,b) => {
-    if (highlighted.has(a.name) && !highlighted.has(b.name)) return -1;
-    if (!highlighted.has(a.name) && highlighted.has(b.name)) return 1;
-    return 0;
-  });
   COURSES_3CR.forEach(c => {
     if (c.day !== curDay) {
       curDay = c.day;
@@ -215,10 +207,11 @@ function buildList3cr(highlighted) {
     div.innerHTML = `<div class="course-check"></div><div><div class="course-row-name">${highlighted.has(c.name)?'<span class="highlighted-dot"></span>':''}${c.name}</div><div class="course-row-meta">${c.prof} · ${c.time}</div></div>`;
     div.onclick = () => toggle3(div, c.name);
     container.appendChild(div);
+    if (preSelected && preSelected.has(c.name)) toggle3(div, c.name);
   });
 }
 
-function buildList1cr(highlighted) {
+function buildList1cr(highlighted, preSelected) {
   const container = document.getElementById('form1crList');
   COURSES_1CR.forEach(c => {
     const div = document.createElement('div');
@@ -227,6 +220,7 @@ function buildList1cr(highlighted) {
     div.innerHTML = `<div class="course-check"></div><div><div class="course-row-name">${highlighted.has(c.name)?'<span class="highlighted-dot"></span>':''}${c.name}</div><div class="course-row-meta">${c.prof} · ${c.time}</div></div>`;
     div.onclick = () => toggle1(div, c.name);
     container.appendChild(div);
+    if (preSelected && preSelected.has(c.name)) toggle1(div, c.name);
   });
 }
 
