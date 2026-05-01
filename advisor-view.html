@@ -60,7 +60,6 @@
 
   .content { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
 
-
   .day-section { margin-bottom: 32px; }
   .day-heading {
     font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
@@ -165,10 +164,11 @@
   .fill-card { background: white; border: 1px solid var(--rule); border-radius: 2px; padding: 14px; }
   .fill-name { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
   .fill-prof { font-size: 10px; color: var(--muted); margin-bottom: 10px; }
-  .fill-bar-wrap { background: var(--cream); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
-  .fill-bar { height: 100%; border-radius: 3px; background: var(--accent); }
-  .fill-bar.amber { background: var(--amber); }
-  .fill-bar.warn { background: var(--warn); }
+  .fill-bar-wrap { background: var(--cream); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 6px; display: flex; }
+  .fill-bar-confirmed { height: 100%; border-radius: 3px 0 0 3px; background: var(--accent); transition: width 0.3s; }
+  .fill-bar-confirmed.amber { background: var(--amber); }
+  .fill-bar-confirmed.warn { background: var(--warn); }
+  .fill-bar-interested { height: 100%; background: var(--rule); transition: width 0.3s; }
   .fill-counts { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
   .fill-credit-tag { display: inline-block; padding: 1px 6px; font-size: 9px; background: var(--cream); color: var(--muted); border-radius: 2px; margin-bottom: 8px; }
 
@@ -306,12 +306,14 @@ function selectAdvisor(name) {
   document.getElementById('mainView').classList.add('active');
   document.getElementById('advisorLabel').textContent = name;
   loadStudents();
+  loadFill();
 }
 
 function switchAdvisor() {
   document.getElementById('picker').style.display = 'flex';
   document.getElementById('mainView').classList.remove('active');
   document.getElementById('studentList').innerHTML = '<div class="empty-state">Loading your appointments…</div>';
+  document.getElementById('fillContent').innerHTML = '<div class="empty-state">Loading class fill…</div>';
   currentAdvisor = null;
   allStudents = [];
   allSlots = {};
@@ -325,39 +327,41 @@ function switchTab(tab) {
   });
 }
 
-function renderFill(students) {
-  const counts = {};
-  students.forEach(s => {
-    [...(s.courseInterests||[]),...(s.courseInterests1||[])].forEach(c => {
-      if (!counts[c]) counts[c] = { interested: 0, confirmed: 0 };
-      counts[c].interested++;
-    });
-    (s.finalCourses||[]).forEach(c => {
-      if (!counts[c]) counts[c] = { interested: 0, confirmed: 0 };
-      counts[c].confirmed++;
-    });
-  });
-  const allCourses = [...COURSES_3CR, ...COURSES_1CR];
-  document.getElementById('fillContent').innerHTML = '<div class="fill-grid">' + allCourses.map(course => {
-    const c = counts[course.name] || { interested: 0, confirmed: 0 };
-    const cap = 15, pct = Math.min(100, Math.round((Math.max(c.interested, c.confirmed) / cap) * 100));
-    const barClass = pct >= 90 ? 'warn' : pct >= 65 ? 'amber' : '';
-    const creditTag = COURSES_1CR.find(x => x.id === course.id) ? '1 credit' : '3 credits';
-    return `<div class="fill-card">
-      <div class="fill-credit-tag">${creditTag}</div>
-      <div class="fill-name">${course.name}</div>
-      <div class="fill-prof">${course.prof}</div>
-      <div class="fill-bar-wrap"><div class="fill-bar ${barClass}" style="width:${pct}%"></div></div>
-      <div class="fill-counts"><span>${c.interested} interested</span><span>${c.confirmed} confirmed</span></div>
-    </div>`;
-  }).join('') + '</div>';
+// ── CLASS FILL — reads directly from Class Lists sheet ──
+async function loadFill() {
+  const fillContent = document.getElementById('fillContent');
+  try {
+    const courses = await api('getClassListData', {});
+    if (!courses || !courses.length) {
+      fillContent.innerHTML = '<div class="empty-state">No class data found.</div>';
+      return;
+    }
+    fillContent.innerHTML = '<div class="fill-grid">' + courses.map(c => {
+      const cap = c.cap || 15;
+      const pctConf = Math.min(100, Math.round((c.confirmed / cap) * 100));
+      const pctInt  = Math.min(100 - pctConf, Math.round((c.interested / cap) * 100));
+      const barClass = pctConf >= 90 ? 'warn' : pctConf >= 65 ? 'amber' : '';
+      return `<div class="fill-card">
+        <div class="fill-credit-tag">${c.credits || '3 credits'}</div>
+        <div class="fill-name">${c.name}</div>
+        <div class="fill-prof">${c.prof}</div>
+        <div class="fill-bar-wrap">
+          <div class="fill-bar-confirmed ${barClass}" style="width:${pctConf}%"></div>
+          <div class="fill-bar-interested" style="width:${pctInt}%"></div>
+        </div>
+        <div class="fill-counts">
+          <span>${c.interested} interested</span>
+          <span>${c.confirmed} confirmed</span>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  } catch(e) {
+    fillContent.innerHTML = '<div class="empty-state">Error loading class fill. Please refresh.</div>';
+  }
 }
 
 // ── DYNAMIC SCHEDULE RENDERER ──
-// Builds entirely from allSlots returned by the API — no hardcoded days.
 function renderSchedule(students, slots) {
-
-  // Build booking lookup: "Advisor_dayId_time" → student
   const bookingMap = {};
   students.forEach(s => {
     if (!s.advisor || !s.slotDay || !s.slotTime) return;
@@ -372,8 +376,6 @@ function renderSchedule(students, slots) {
 
   const ADVISORS = ['Andrew', 'Betty'];
 
-  // Collect all unique day labels (in slot order, preserving first appearance)
-  // Group day entries by their label so same-day blocks from one advisor merge under one column
   const dayLabelOrder = [];
   const dayLabelsSeen = new Set();
   ADVISORS.forEach(adv => {
@@ -390,12 +392,10 @@ function renderSchedule(students, slots) {
     return;
   }
 
-  // For each advisor+dayLabel, collect all matching day blocks
   function getDayBlocks(adv, label) {
     return (slots[adv] || []).filter(d => d.label.trim().toLowerCase() === label.trim().toLowerCase());
   }
 
-  // Collect all times across all slots
   const timeSet = new Set();
   ADVISORS.forEach(adv => {
     (slots[adv] || []).forEach(day => {
@@ -428,7 +428,6 @@ function renderSchedule(students, slots) {
 
   html += `<div class="sched-outer"><div class="cal-grid" style="grid-template-columns: 64px repeat(${numCols}, 1fr);">`;
 
-  // Header row
   html += '<div class="cal-header time-corner"></div>';
   dayLabelOrder.forEach(label => {
     ADVISORS.forEach((adv, ai) => {
@@ -439,44 +438,32 @@ function renderSchedule(students, slots) {
     });
   });
 
-  // Time rows
   times.forEach(time => {
     html += `<div class="cal-time">${time}</div>`;
     dayLabelOrder.forEach(label => {
       ADVISORS.forEach(adv => {
         const blocks = getDayBlocks(adv, label);
-        if (!blocks.length) {
-          html += `<div class="cal-cell is-empty"></div>`;
-          return;
-        }
-
-        // Check for break across any block
+        if (!blocks.length) { html += `<div class="cal-cell is-empty"></div>`; return; }
         const isBreak = blocks.some(b => b.slots.some(sl => sl.isBreak && sl.time === time));
-        // Find matching bookable slot
         let slot = null, foundDayId = null;
         for (const b of blocks) {
           const s = b.slots.find(sl => !sl.isBreak && sl.time === time);
           if (s) { slot = s; foundDayId = b.id; break; }
         }
-
         if (!slot) {
           html += `<div class="cal-cell ${isBreak ? 'is-break' : 'is-empty'}">${isBreak ? '<span class="cal-cell-name break-label">break</span>' : ''}</div>`;
           return;
         }
-
         stats[adv].total++;
         const key = adv + '_' + foundDayId + '_' + time;
         const student = bookingMap[key] || (slot.bookedBy ? { name: slot.bookedBy, stage: 1 } : null);
-
         if (student) {
           const isMet = student.stage >= 2;
           if (isMet) stats[adv].met++;
           else stats[adv].booked++;
           const parts = student.name.split(' ');
           const displayName = parts[0] + (parts.length > 1 ? ' ' + parts[parts.length - 1] : '');
-          html += `<div class="cal-cell ${isMet ? 'met' : 'booked'}">
-            <div class="cal-cell-name">${displayName}</div>
-          </div>`;
+          html += `<div class="cal-cell ${isMet ? 'met' : 'booked'}"><div class="cal-cell-name">${displayName}</div></div>`;
         } else {
           html += `<div class="cal-cell open"><span class="cal-cell-name open-label">open</span></div>`;
         }
@@ -485,7 +472,6 @@ function renderSchedule(students, slots) {
   });
 
   html += '</div></div>';
-
   html += '<div class="sched-totals">';
   ADVISORS.forEach(adv => {
     const s = stats[adv];
@@ -498,7 +484,6 @@ function renderSchedule(students, slots) {
     </div>`;
   });
   html += '</div>';
-
   document.getElementById('schedContent').innerHTML = html;
 }
 
@@ -518,7 +503,6 @@ async function loadStudents() {
       });
 
     renderStudents();
-    renderFill(students);
     renderSchedule(students.filter(s => s.stage >= 1), allSlots);
   } catch(e) {
     document.getElementById('studentList').innerHTML = '<div class="empty-state">Error loading. Please refresh.</div>';
@@ -591,26 +575,21 @@ function renderCard(s) {
       </div>
     </div>
     <div class="student-card-body">
-
       ${(badges3||badges1) ? `
         <div class="sec-label">Student's Course Interests</div>
         <div class="interests-list">${badges3}${badges1}</div>
         ${s.notes?`<div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic">"${s.notes}"</div>`:''}
       ` : ''}
-
       <div class="sec-label" style="margin-top:${badges3||badges1?'18px':'0'}">
         3-Credit Courses &nbsp;<span style="font-weight:normal;color:var(--amber);font-size:9px">★ = student interested</span>
       </div>
       <div class="course-grid" id="grid3-${s.emplid}">${courses3html}</div>
-
       <div class="sec-label" style="margin-top:14px">1-Credit Workshops</div>
       <div class="one-cr-grid" id="grid1-${s.emplid}">${courses1html}</div>
-
       ${s.advisorNotes ? `
         <div class="sec-label" style="margin-top:18px">Student's Notes for Advisor</div>
         <div style="font-size:11px;color:var(--ink);line-height:1.6;padding:10px 12px;background:var(--cream);border-radius:2px;border:1px solid var(--rule);white-space:pre-wrap;">${s.advisorNotes}</div>
       ` : ''}
-
       <div class="sec-label" style="margin-top:18px">Notes</div>
       <div class="notes-row">
         <div class="note-field">
@@ -626,7 +605,6 @@ function renderCard(s) {
           <div class="save-ind" id="ind-otherNotes-${s.emplid}"></div>
         </div>
       </div>
-
       <div class="card-actions">${metBtn}</div>
     </div>
   </div>`;
@@ -639,7 +617,6 @@ function toggleCard(emplid) {
 function toggleCourse(el, emplid, name, type) {
   const cls = type === '3cr' ? 'checked' : 'checked-1cr';
   const wasChecked = el.classList.contains(cls);
-
   if (wasChecked) {
     el.classList.remove(cls);
     el.querySelector('.chk').textContent = '';
@@ -665,7 +642,6 @@ function saveCourses(emplid) {
   const courses = [...selected3, ...selected1];
   const s = allStudents.find(x => String(x.emplid) === String(emplid));
   if (s) s.finalCourses = courses;
-
   clearTimeout(saveTimers['courses-' + emplid]);
   saveTimers['courses-' + emplid] = setTimeout(async () => {
     try { await api('saveFinalCourses', { emplid, courses }); } catch(e) {}
