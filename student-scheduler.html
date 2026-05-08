@@ -454,8 +454,19 @@ function renderSlots(advisor, data) {
     return;
   }
 
+  // Filter to current week (Sunday) and beyond
+  const startOfWeek = new Date();
+  startOfWeek.setHours(0, 0, 0, 0);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const monthMap = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+
   let html = '';
   days.forEach(day => {
+    const m = day.label.match(/(\w{3})\s+(\d+)/);
+    if (m && monthMap[m[1]] !== undefined) {
+      const slotDate = new Date(2026, monthMap[m[1]], parseInt(m[2]));
+      if (slotDate < startOfWeek) return;
+    }
     const visibleSlots = day.slots.filter(s => !s.isBreak);
     if (!visibleSlots.length) return;
     html += `<div class="day-label">${day.label}</div><div class="slot-grid">`;
