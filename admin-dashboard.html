@@ -187,6 +187,17 @@ const COURSES_1CR = [
   {id:'IMA TBD',name:'Story as Intervention',prof:'Lenina Nadal'},{id:'IMA78397',name:'Projection Mapping',prof:'Chika Iijima'},
 ];
 let allStudents = [], allSlots = {}, saveTimers = {};
+const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const norm = s => String(s).toLowerCase().replace(/\(winter\)/g,'').replace(/[:\-–—]/g,' ').replace(/\s+/g,' ').trim();
+// Other spellings of a course name that the booking page / older data may use, keyed by course id
+const ALIASES = {
+  'IMA7801M': ['Advanced Darkroom for Film and Media Makers (Winter)'],
+  'IMA78383': ['Body Politics in Media Art (Winter)', 'Body Politics in Media'],
+  'IMA78366': ['DaVinci Resolve for Color Grading (Winter)'],
+  'IMA7801H': ['Dream Machines: Tech and Storytelling'],
+  'IMA78008': ['Experimental TV Studio: Superstation'],
+  'IMA78011': ['Screen Directing: From Script to Screen'],
+};
 
 document.addEventListener('input', function(e) {
   if (!e.target.classList.contains('modal-ta')) return;
@@ -249,20 +260,20 @@ function renderStudents(students) {
   if (!students.length) { tbody.innerHTML = '<tr><td colspan="10" class="no-data">No students match.</td></tr>'; return; }
   tbody.innerHTML = students.map(s => {
     const [lbl,cls] = STAGE_LABELS[s.stage]||['Unknown','s0'];
-    const slot = s.slotDay ? `${s.slotDay}${s.slotTime?' · '+s.slotTime:''}` : '—';
+    const slot = s.slotDay ? esc(`${s.slotDay}${s.slotTime?' · '+s.slotTime:''}`) : '—';
     return `<tr>
-      <td style="font-weight:500">${s.name}</td>
-      <td style="color:var(--muted)">${s.emplid}</td>
-      <td>${s.credits||'—'}</td>
+      <td style="font-weight:500">${esc(s.name)}</td>
+      <td style="color:var(--muted)">${esc(s.emplid)}</td>
+      <td>${esc(s.credits||'—')}</td>
       <td><span class="stage-badge ${cls}"><span class="dot"></span>${lbl}</span></td>
-      <td>${s.advisor||'—'}</td>
+      <td>${esc(s.advisor||'—')}</td>
       <td style="white-space:nowrap;font-size:10px">${slot}</td>
-      <td style="font-size:10px;max-width:180px">${(s.courseInterests||[]).join(', ')||'—'}</td>
-      <td style="font-size:10px;max-width:160px">${(s.courseInterests1||[]).join(', ')||'—'}</td>
-      <td style="font-size:10px;max-width:180px">${(s.finalCourses||[]).join(', ')||'—'}</td>
+      <td style="font-size:10px;max-width:180px">${esc((s.courseInterests||[]).join(', ')||'—')}</td>
+      <td style="font-size:10px;max-width:160px">${esc((s.courseInterests1||[]).join(', ')||'—')}</td>
+      <td style="font-size:10px;max-width:180px">${esc((s.finalCourses||[]).join(', ')||'—')}</td>
       <td style="white-space:nowrap">
-        <button class="action-btn" onclick="openModal('${s.emplid}')">View</button>
-        ${s.stage===1?`<button class="action-btn accent" onclick="markMet('${s.emplid}')">Mark Met</button>`:''}
+        <button class="action-btn" onclick="openModal('${esc(s.emplid)}')">View</button>
+        ${s.stage===1?`<button class="action-btn accent" onclick="markMet('${esc(s.emplid)}')">Mark Met</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -270,16 +281,20 @@ function renderStudents(students) {
 
 function renderFill(students) {
   const counts = {};
+  const bump = (name, key) => { const n = norm(name); if(!counts[n]) counts[n]={interested:0,confirmed:0}; counts[n][key]++; };
   students.forEach(s => {
-    [...(s.courseInterests||[]),...(s.courseInterests1||[])].forEach(c => { if(!counts[c])counts[c]={interested:0,confirmed:0}; counts[c].interested++; });
-    (s.finalCourses||[]).forEach(c => { if(!counts[c])counts[c]={interested:0,confirmed:0}; counts[c].confirmed++; });
+    [...(s.courseInterests||[]),...(s.courseInterests1||[])].forEach(c => bump(c,'interested'));
+    (s.finalCourses||[]).forEach(c => bump(c,'confirmed'));
   });
   const allCourses = [...COURSES_3CR,...COURSES_1CR];
   document.getElementById('fillContent').innerHTML = '<div class="fill-grid">' + allCourses.map(course => {
-    const c = counts[course.name]||{interested:0,confirmed:0}; const cap=15;
+    const names = new Set([course.name, ...(ALIASES[course.id]||[])].map(norm));
+    const c = {interested:0,confirmed:0};
+    names.forEach(n => { if(counts[n]){ c.interested += counts[n].interested; c.confirmed += counts[n].confirmed; } });
+    const cap=15;
     const pct = Math.min(100,Math.round((c.interested/cap)*100));
     const barClass = pct>=90?'warn':pct>=70?'amber':'';
-    const creditTag = COURSES_1CR.find(x=>x.id===course.id)?'1 credit':'3 credits';
+    const creditTag = COURSES_1CR.includes(course)?'1 credit':'3 credits';
     return `<div class="fill-card"><div class="fill-credit-tag">${creditTag}</div><div class="fill-name">${course.name}</div><div class="fill-prof">${course.prof}</div><div class="fill-bar-wrap"><div class="fill-bar ${barClass}" style="width:${pct}%"></div></div><div class="fill-counts"><span>${c.interested} interested</span><span>${c.confirmed} confirmed · cap ~${cap}</span></div></div>`;
   }).join('') + '</div>';
 }
@@ -289,7 +304,7 @@ function renderSlots(slotsData) {
   if (!slotsData||(!slotsData.Andrew&&!slotsData.Betty)) { grid.innerHTML='<div style="font-size:12px;color:var(--muted);padding:20px">No availability configured.</div>'; return; }
   grid.innerHTML = ['Andrew','Betty'].map(adv => {
     const days=slotsData[adv]||[]; const total=days.reduce((a,d)=>a+d.slots.filter(s=>!s.isBreak).length,0); const booked=days.reduce((a,d)=>a+d.slots.filter(s=>s.bookedBy).length,0);
-    const dayHTML=days.map(day=>`<div class="day-section"><div class="day-name">${day.label}</div>${day.slots.map(slot=>slot.isBreak?`<div class="slot-row break-slot"><span>${slot.time}</span><span style="font-size:10px">break</span></div>`:slot.bookedBy?`<div class="slot-row booked"><span>${slot.time}</span><span class="slot-name">${slot.bookedBy}</span></div>`:`<div class="slot-row open"><span>${slot.time}</span><span class="slot-open-tag">open</span></div>`).join('')}</div>`).join('');
+    const dayHTML=days.map(day=>`<div class="day-section"><div class="day-name">${esc(day.label)}</div>${day.slots.map(slot=>slot.isBreak?`<div class="slot-row break-slot"><span>${esc(slot.time)}</span><span style="font-size:10px">break</span></div>`:slot.bookedBy?`<div class="slot-row booked"><span>${esc(slot.time)}</span><span class="slot-name">${esc(slot.bookedBy)}</span></div>`:`<div class="slot-row open"><span>${esc(slot.time)}</span><span class="slot-open-tag">open</span></div>`).join('')}</div>`).join('');
     return `<div class="advisor-block"><div class="advisor-block-title"><span>${adv}</span><span style="font-size:11px;opacity:0.6">${booked}/${total} booked</span></div>${dayHTML}</div>`;
   }).join('');
 }
@@ -301,26 +316,26 @@ function openModal(emplid) {
   document.getElementById('mEmplid').textContent=`EMPLID: ${s.emplid}${s.credits?' · '+s.credits+' credits':''}`;
   document.getElementById('mBody').innerHTML=`
     <div class="modal-label">Stage</div><span class="stage-badge ${cls}"><span class="dot"></span>${lbl}</span>
-    <div class="modal-label">Advisor / Slot</div><div class="modal-val">${s.advisor||'—'}${s.slotDay?' · '+s.slotDay+(s.slotTime?' at '+s.slotTime:''):''}</div>
-    ${s.meetLink?`<div class="modal-label">Zoom Link</div><div class="modal-val"><a href="${s.meetLink}" target="_blank" style="color:var(--accent)">${s.meetLink}</a></div>`:''}
-    <div class="modal-label">3-Cr Interests</div><div class="modal-val">${(s.courseInterests||[]).join(', ')||'—'}</div>
-    <div class="modal-label">1-Cr Interests</div><div class="modal-val">${(s.courseInterests1||[]).join(', ')||'—'}</div>
-    ${s.notes?`<div class="modal-label">Student Notes</div><div class="modal-val" style="font-style:italic">${s.notes}</div>`:''}
-    <div class="modal-label">Final Courses</div><div class="modal-val">${(s.finalCourses||[]).join(', ')||'Not submitted yet'}</div>
+    <div class="modal-label">Advisor / Slot</div><div class="modal-val">${esc((s.advisor||'—')+(s.slotDay?' · '+s.slotDay+(s.slotTime?' at '+s.slotTime:''):''))}</div>
+    ${s.meetLink?`<div class="modal-label">Zoom Link</div><div class="modal-val"><a href="${esc(s.meetLink)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(s.meetLink)}</a></div>`:''}
+    <div class="modal-label">3-Cr Interests</div><div class="modal-val">${esc((s.courseInterests||[]).join(', ')||'—')}</div>
+    <div class="modal-label">1-Cr Interests</div><div class="modal-val">${esc((s.courseInterests1||[]).join(', ')||'—')}</div>
+    ${s.notes?`<div class="modal-label">Student Notes</div><div class="modal-val" style="font-style:italic">${esc(s.notes)}</div>`:''}
+    <div class="modal-label">Final Courses</div><div class="modal-val">${esc((s.finalCourses||[]).join(', ')||'Not submitted yet')}</div>
     <hr class="modal-divider">
     <div class="modal-label">Meeting Notes</div>
-    <textarea class="modal-ta" data-field="advisorNotes" data-emplid="${s.emplid}" placeholder="Notes from this meeting…">${s.advisorNotes||''}</textarea>
-    <div class="save-indicator" id="ind-advisorNotes-${s.emplid}"></div>
+    <textarea class="modal-ta" data-field="advisorNotes" data-emplid="${esc(s.emplid)}" placeholder="Notes from this meeting…">${esc(s.advisorNotes||'')}</textarea>
+    <div class="save-indicator" id="ind-advisorNotes-${esc(s.emplid)}"></div>
     <div class="modal-label">Program Feedback</div>
-    <textarea class="modal-ta" data-field="programFeedback" data-emplid="${s.emplid}" placeholder="Program progress, trajectory, concerns…">${s.programFeedback||''}</textarea>
-    <div class="save-indicator" id="ind-programFeedback-${s.emplid}"></div>
+    <textarea class="modal-ta" data-field="programFeedback" data-emplid="${esc(s.emplid)}" placeholder="Program progress, trajectory, concerns…">${esc(s.programFeedback||'')}</textarea>
+    <div class="save-indicator" id="ind-programFeedback-${esc(s.emplid)}"></div>
     <div class="modal-label">Other Notes</div>
-    <textarea class="modal-ta" data-field="otherNotes" data-emplid="${s.emplid}" placeholder="Anything else…">${s.otherNotes||''}</textarea>
-    <div class="save-indicator" id="ind-otherNotes-${s.emplid}"></div>`;
+    <textarea class="modal-ta" data-field="otherNotes" data-emplid="${esc(s.emplid)}" placeholder="Anything else…">${esc(s.otherNotes||'')}</textarea>
+    <div class="save-indicator" id="ind-otherNotes-${esc(s.emplid)}"></div>`;
   const footer=document.getElementById('mFooter'); footer.innerHTML='';
-  if(s.stage===0) footer.innerHTML+=`<button class="btn btn-warn" onclick="sendOneReminder('${s.emplid}','unbooked');closeModal()">Send Booking Reminder</button>`;
-  if(s.stage===1) footer.innerHTML+=`<button class="btn btn-accent" onclick="markMet('${s.emplid}')">Mark as Met</button>`;
-  if(s.stage===2) footer.innerHTML+=`<button class="btn btn-accent" onclick="sendOneReminder('${s.emplid}','postMeeting');closeModal()">Re-send Post-Meeting Email</button>`;
+  if(s.stage===0) footer.innerHTML+=`<button class="btn btn-warn" onclick="sendOneReminder('${esc(s.emplid)}','unbooked');closeModal()">Send Booking Reminder</button>`;
+  if(s.stage===1) footer.innerHTML+=`<button class="btn btn-accent" onclick="markMet('${esc(s.emplid)}')">Mark as Met</button>`;
+  if(s.stage===2) footer.innerHTML+=`<button class="btn btn-accent" onclick="sendOneReminder('${esc(s.emplid)}','postMeeting');closeModal()">Re-send Post-Meeting Email</button>`;
   footer.innerHTML+=`<button class="btn btn-plain" onclick="closeModal()">Close</button>`;
   document.getElementById('modalOverlay').classList.add('open');
 }
@@ -331,7 +346,7 @@ function handleOverlayClick(e) { if(e.target===document.getElementById('modalOve
 async function markMet(emplid) {
   if(!confirm('Mark as met? This sends the post-meeting email.')) return;
   const res=await api('markMet',{emplid});
-  if(res.success){alert('Done. Post-meeting email sent.');closeModal();loadData();}
+  if(res.success){alert(res.emailed===false ? 'Marked as met, but NO email was sent because this student has no email address on file.' : 'Done. Post-meeting email sent.');closeModal();loadData();}
   else alert('Error: '+(res.message||'Could not update.'));
 }
 async function sendReminders(type) {
