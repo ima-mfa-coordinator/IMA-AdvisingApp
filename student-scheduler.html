@@ -479,10 +479,10 @@ function renderSlots(advisor, data) {
       const isTaken = takenSlots.includes(slot.id || (advisor + '_' + day.id + '_' + slot.time));
       const slotId = slot.id || (advisor + '_' + day.id + '_' + slot.time);
 
-      // 24-hour cutoff check
+      //
       let isPastCutoff = false;
       try {
-        const slotDate = new Date(day.label + ' ' + slot.time + ' 2026');
+        const slotDate = new Date(day.label + ' ' + slot.time + ' 2027');
         if (!isNaN(slotDate.getTime())) {
           isPastCutoff = (slotDate.getTime() - now.getTime()) < cutoffMs;
         }
