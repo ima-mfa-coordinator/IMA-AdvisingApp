@@ -219,7 +219,7 @@
       <div class="step">4</div>
     </div>
     <div class="page-title">Choose a time</div>
-    <div class="page-sub">Select an advisor and a 20-minute appointment slot. Appointments must be booked at least <strong>24 hours in advance</strong>.</div>
+        <div class="page-sub">Select an advisor and a 20 minute appointment slot.</div>
     <div class="card">
       <div class="advisor-tabs">
         <button class="adv-tab on" id="tabAndrew" onclick="selectAdvisor('Andrew')">Andrew</button>
@@ -452,7 +452,7 @@ function renderSlots(advisor, data) {
   const takenSlots = data.takenSlots || [];
   const days = data.days || [];
   const now = new Date();
-  const cutoffMs = 24 * 60 * 60 * 1000; // 24 hours
+    const cutoffMs = 0; // only times that have already started are greyed out
 
   if (!days.length) {
     document.getElementById('slotContent').innerHTML = '<div style="font-size:12px;color:var(--muted)">No slots available for ' + advisor + '.</div>';
@@ -493,7 +493,7 @@ function renderSlots(advisor, data) {
       if (isTaken) {
         html += `<div class="slot taken">${slot.time}</div>`;
       } else if (isPastCutoff) {
-        html += `<div class="slot cutoff" title="Must book 24h in advance">${slot.time}<span class="slot-cutoff-note">24h cutoff</span></div>`;
+                html += `<div class="slot cutoff" title="This time has passed">${slot.time}<span class="slot-cutoff-note">Passed</span></div>`;
       } else {
         html += `<div class="slot${isSelected ? ' selected' : ''}" onclick="selectSlot('${slotId}','${slot.time}','${day.label}','${advisor}')">${slot.time}</div>`;
       }
