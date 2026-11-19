@@ -169,6 +169,7 @@
     .wrap { margin: 20px auto; }
     .card { padding: 18px; }
   }
+  .slot-fmt { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; display: block; opacity: 0.75; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -282,6 +283,7 @@
     <div class="page-sub">Review your appointment details before confirming.</div>
     <div class="card">
       <div class="confirm-box" id="confirmBox"></div>
+      <div class="field" id="modeField" style="margin-top:20px"></div>
 
       <div class="field" style="margin-top:20px">
         <label>Notes or questions for your advisor (optional)</label>
@@ -356,7 +358,8 @@ let S = {
   emplid: null, name: null,
   advisor: 'Andrew', slotId: null, slotTime: null, slotDay: null,
   courses3: [], courses1: [],
-  isRescheduling: false, existingSlotId: null
+  isRescheduling: false, existingSlotId: null,
+  mode: '', slotFormat: ''
 };
 
 // ── API ────────────────────────────────────────────────────
@@ -448,6 +451,15 @@ async function loadSlots(advisor) {
   }
 }
 
+// Picks the year for a date written without one ("Mon Nov 23"): this year, or next year
+// if that date is more than 180 days in the past (e.g. January slots seen in the fall).
+function slotYearFor(monthIdx, dayNum) {
+  const now = new Date();
+  let y = now.getFullYear();
+  if (new Date(y, monthIdx, dayNum).getTime() < now.getTime() - 180 * 24 * 60 * 60 * 1000) y++;
+  return y;
+}
+
 function renderSlots(advisor, data) {
   const takenSlots = data.takenSlots || [];
   const days = data.days || [];
@@ -469,7 +481,7 @@ function renderSlots(advisor, data) {
   days.forEach(day => {
     const m = day.label.match(/(\w{3})\s+(\d+)/);
     if (m && monthMap[m[1]] !== undefined) {
-      const slotDate = new Date(2026, monthMap[m[1]], parseInt(m[2]));
+      const slotDate = new Date(slotYearFor(monthMap[m[1]], parseInt(m[2])), monthMap[m[1]], parseInt(m[2]));
       if (slotDate < startOfWeek) return;
     }
     const visibleSlots = day.slots.filter(s => !s.isBreak);
@@ -479,11 +491,15 @@ function renderSlots(advisor, data) {
       const isTaken = takenSlots.includes(slot.id || (advisor + '_' + day.id + '_' + slot.time));
       const slotId = slot.id || (advisor + '_' + day.id + '_' + slot.time);
 
-      //
+      // Too soon? (cutoffMs hours before the start time)
       let isPastCutoff = false;
       try {
-        const slotDate = new Date(day.label + ' ' + slot.time + ' 2027');
-        if (!isNaN(slotDate.getTime())) {
+        const tm = slot.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (m && tm && monthMap[m[1]] !== undefined) {
+          let hh = parseInt(tm[1]);
+          if (tm[3].toUpperCase() === 'PM' && hh !== 12) hh += 12;
+          if (tm[3].toUpperCase() === 'AM' && hh === 12) hh = 0;
+          const slotDate = new Date(slotYearFor(monthMap[m[1]], parseInt(m[2])), monthMap[m[1]], parseInt(m[2]), hh, parseInt(tm[2]));
           isPastCutoff = (slotDate.getTime() - now.getTime()) < cutoffMs;
         }
       } catch(e) {}
@@ -495,7 +511,8 @@ function renderSlots(advisor, data) {
       } else if (isPastCutoff) {
                                 html += `<div class="slot cutoff" title="Appointments must be booked at least 12 hours in advance">${slot.time}<span class="slot-cutoff-note">Too soon</span></div>`;
       } else {
-        html += `<div class="slot${isSelected ? ' selected' : ''}" onclick="selectSlot('${slotId}','${slot.time}','${day.label}','${advisor}')">${slot.time}</div>`;
+        const tag = slot.format === 'In person' ? 'In person' : 'Zoom';
+        html += `<div class="slot${isSelected ? ' selected' : ''}" onclick="selectSlot('${slotId}','${slot.time}','${day.label}','${advisor}','${slot.format || ''}')">${slot.time}<span class="slot-fmt">${tag}</span></div>`;
       }
     });
     html += '</div>';
@@ -507,13 +524,16 @@ function renderSlots(advisor, data) {
 function selectAdvisor(advisor) {
   S.advisor = advisor;
   S.slotId = null; S.slotTime = null; S.slotDay = null;
+  S.mode = ''; S.slotFormat = '';
   document.getElementById('tabAndrew').classList.toggle('on', advisor === 'Andrew');
   document.getElementById('tabBetty').classList.toggle('on', advisor === 'Betty');
   loadSlots(advisor);
 }
 
-function selectSlot(slotId, time, day, advisor) {
+function selectSlot(slotId, time, day, advisor, format) {
   S.slotId = slotId; S.slotTime = time; S.slotDay = day; S.advisor = advisor;
+  S.slotFormat = format === 'In person' ? 'In person' : 'Zoom';
+  S.mode = S.slotFormat;
   // Re-render to show selection
   if (slotCache[advisor]) renderSlots(advisor, slotCache[advisor]);
 }
@@ -575,8 +595,16 @@ function renderConfirm() {
     <div class="confirm-row"><div class="confirm-label">Advisor</div><div>${S.advisor}</div></div>
     <div class="confirm-row"><div class="confirm-label">Date & Time</div><div>${S.slotDay} · ${S.slotTime}</div></div>
     <div class="confirm-row"><div class="confirm-label">Duration</div><div>20 minutes</div></div>
+    <div class="confirm-row"><div class="confirm-label">Format</div><div>${S.mode || 'Zoom'}</div></div>
     <div class="confirm-row"><div class="confirm-label">Courses</div><div>${all.length ? all.join('<br>') : 'None selected'}</div></div>
   `;
+  renderModeField();
+}
+
+function renderModeField() {
+  const el = document.getElementById('modeField');
+  if (!el) return;
+  el.innerHTML = `<label>Meeting format</label><div style="font-size:13px">This appointment is <strong>${S.mode === 'In person' ? 'in person' : 'on Zoom'}</strong>.</div>`;
 }
 
 // ── SUBMIT ─────────────────────────────────────────────────
@@ -607,6 +635,7 @@ if (!creditCount) {
       slotDay: S.slotDay,
       courses3: S.courses3,
       courses1: S.courses1,
+      mode: S.mode,
       notes: document.getElementById('studentNotes').value,
      credits: document.getElementById('creditCount').value,
 isRescheduling: S.isRescheduling,
@@ -616,7 +645,9 @@ isRescheduling: S.isRescheduling,
     if (res.success) {
       document.getElementById('successMsg').innerHTML =
         `Your appointment with <strong>${S.advisor}</strong> on <strong>${S.slotDay}</strong> at <strong>${S.slotTime}</strong> is confirmed.<br><br>` +
-        `${res.meetLink ? `Join via Zoom: <a href="${res.meetLink}" style="color:var(--accent)">${res.meetLink}</a><br><br>` : ''}` +
+        `${res.meetLink && res.meetLink.indexOf('IN PERSON') === 0
+          ? `Format: <strong>In person</strong><br>Location: ${res.meetLink.replace('IN PERSON: ', '')}<br><br>`
+          : res.meetLink ? `Format: <strong>Zoom</strong><br>Join via Zoom: <a href="${res.meetLink}" style="color:var(--accent)">${res.meetLink}</a><br><br>` : ''}` +
         `A confirmation email has been sent. Please bring your course history to your appointment.`;
       goPage('success');
     } else {
