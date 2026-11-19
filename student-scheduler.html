@@ -452,7 +452,7 @@ function renderSlots(advisor, data) {
   const takenSlots = data.takenSlots || [];
   const days = data.days || [];
   const now = new Date();
-    const cutoffMs = 0; // only times that have already started are greyed out
+    const cutoffMs = 12 * 60 * 60 * 1000; // only times that have already started are greyed out
 
   if (!days.length) {
     document.getElementById('slotContent').innerHTML = '<div style="font-size:12px;color:var(--muted)">No slots available for ' + advisor + '.</div>';
@@ -493,7 +493,7 @@ function renderSlots(advisor, data) {
       if (isTaken) {
         html += `<div class="slot taken">${slot.time}</div>`;
       } else if (isPastCutoff) {
-                html += `<div class="slot cutoff" title="This time has passed">${slot.time}<span class="slot-cutoff-note">Passed</span></div>`;
+                                html += `<div class="slot cutoff" title="Appointments must be booked at least 12 hours in advance">${slot.time}<span class="slot-cutoff-note">Too soon</span></div>`;
       } else {
         html += `<div class="slot${isSelected ? ' selected' : ''}" onclick="selectSlot('${slotId}','${slot.time}','${day.label}','${advisor}')">${slot.time}</div>`;
       }
