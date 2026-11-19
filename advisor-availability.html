@@ -232,7 +232,7 @@
 
   .time-block {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 1fr 1fr 1.3fr auto;
     gap: 10px;
     align-items: end;
     margin-bottom: 10px;
@@ -414,6 +414,7 @@
     .advisor-btns { grid-template-columns: 1fr; }
     .time-block { grid-template-columns: 1fr 1fr; }
     .time-block .remove-btn { grid-column: span 2; width: 100%; }
+        .time-block .field.fmt { grid-column: span 2; }
     header { padding: 16px 20px; }
   }
 </style>
@@ -555,7 +556,7 @@ function logout() {
 
 let blockCount = 0;
 
-function addTimeBlock(startVal='', endVal='') {
+function addTimeBlock(startVal='', endVal='', fmtVal='') {
   blockCount++;
   const id = 'block-' + blockCount;
   const div = document.createElement('div');
@@ -570,11 +571,18 @@ function addTimeBlock(startVal='', endVal='') {
       <label>End Time</label>
       <input type="time" value="${endVal}" step="1800">
     </div>
+    <div class="field fmt">
+      <label>Format</label>
+      <select>
+        <option value="">Select format…</option>
+        <option value="In person"${fmtVal === 'In person' ? ' selected' : ''}>In person</option>
+        <option value="Zoom"${fmtVal === 'Zoom' ? ' selected' : ''}>Zoom</option>
+      </select>
+    </div>
     <button class="remove-btn" onclick="removeBlock('${id}')" title="Remove">✕</button>
   `;
   document.getElementById('time-blocks-container').appendChild(div);
 }
-
 function removeBlock(id) {
   const el = document.getElementById(id);
   if (el) el.remove();
