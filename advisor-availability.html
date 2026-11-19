@@ -645,7 +645,7 @@ function renderSlots(slots) {
     group.slots.forEach(s => {
       const isBooked = s.booked === 'TRUE' || s.booked === true;
       html += `<span class="slot-chip ${isBooked ? 'booked' : ''}" title="${isBooked ? 'Booked — cannot delete' : ''}">
-        ${s.time}${isBooked ? ' 🔒' : ''}
+                ${s.time}${s.format ? ' · ' + s.format : ''}${isBooked ? ' 🔒' : ''}
         ${!isBooked ? `<button onclick="deleteSlot('${s.rowIndex}')" title="Remove this slot">✕</button>` : ''}
       </span>`;
     });
@@ -671,7 +671,9 @@ async function submitAvailability() {
     const end = inputs[1].value;
     if (!start || !end) { showStatus('Please fill in all start and end times.', 'error'); return; }
     if (end <= start) { showStatus('End time must be after start time.', 'error'); return; }
-    timeBlocks.push({ start, end });
+        const fmt = block.querySelector('select').value;
+    if (!fmt) { showStatus('Please choose In person or Zoom for every time block.', 'error'); return; }
+    timeBlocks.push({ start, end, format: fmt });
   }
 
   if (timeBlocks.length === 0) { showStatus('Add at least one time block.', 'error'); return; }
@@ -696,7 +698,7 @@ async function submitAvailability() {
       const ampm = h >= 12 ? 'PM' : 'AM';
       const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
       const displayM = m === 0 ? '00' : m;
-      slots.push(`${displayH}:${displayM} ${ampm}`);
+            slots.push({ time: `${displayH}:${displayM} ${ampm}`, format: block.format });
       cur += 30;
     }
   });
