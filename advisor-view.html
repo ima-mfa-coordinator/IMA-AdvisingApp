@@ -595,6 +595,24 @@ function chipsHtml(s, list, type) {
       onclick="toggleInterest(this,'${s.emplid}','${type}')">${c.name}</div>`).join('');
 }
 
+async function emailInterests(emplid, btn) {
+  const ind = document.getElementById('ind-email-' + emplid);
+  clearTimeout(saveTimers['interests-' + emplid]);
+  const s = allStudents.find(x => String(x.emplid) === String(emplid));
+  if (!confirm('Email ' + (s ? s.name : 'this student') + ' their updated course interests?')) return;
+  btn.disabled = true; ind.textContent = 'Sending…'; ind.className = 'save-ind saving';
+  try {
+    // make sure the latest edits are in the sheet before the email reads them
+    await api('saveInterests', { emplid, courses3: s.courseInterests || [], courses1: s.courseInterests1 || [] });
+    const res = await api('emailInterestsUpdate', { emplid });
+    if (!res || !res.success) throw new Error((res && res.message) || 'failed');
+    ind.textContent = 'Email sent ✓'; ind.className = 'save-ind saved';
+  } catch (err) {
+    ind.textContent = 'Not sent: ' + err.message; ind.className = 'save-ind error';
+  }
+  btn.disabled = false;
+}
+
 function toggleEditInterests(emplid) {
   document.getElementById('editint-' + emplid).classList.toggle('open');
 }
@@ -664,6 +682,10 @@ function renderCard(s) {
         <div class="sec-label" style="margin-top:0">1-Credit Workshops</div>
         <div class="int-chip-grid" id="chips1-${s.emplid}">${chipsHtml(s, COURSES_1CR, '1cr')}</div>
         <div class="save-ind" id="ind-interests-${s.emplid}" style="text-align:left"></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <button class="btn-met" onclick="emailInterests('${s.emplid}', this)">Email updated interests to student</button>
+          <span class="save-ind" id="ind-email-${s.emplid}" style="margin:0"></span>
+        </div>
       </div>
       <div class="sec-label" style="margin-top:18px">
         3-Credit Courses &nbsp;<span style="font-weight:normal;color:var(--amber);font-size:9px">★ = student interested</span>
