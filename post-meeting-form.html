@@ -136,7 +136,7 @@
     <div class="card success-card">
       <div class="success-icon">✓</div>
       <div class="success-title">Selection confirmed!</div>
-      <div class="success-desc">Your course pre-registration choices have been recorded and you'll receive a confirmation email shortly. Please register for your classes on CUNYFirst as of November 25th. Use the EMPLID lookup tool to check your registered courses anytime.</div>
+      <div class="success-desc">Your course pre-registration choices have been recorded and you'll receive a confirmation email shortly. You can register for your classes on CUNYFirst as of Monday, November 30th. Use the EMPLID lookup tool to check your registered courses anytime.</div>
     </div>
   </div>
 
@@ -174,7 +174,7 @@ async function init() {
     const res = await api('getPostMeetingData', { token, emplid });
     if (!res.valid) { showPage('pageError'); return; }
     document.getElementById('studentNameDisplay').textContent = res.name || res.studentName || '';
-    document.getElementById('deadlineBox').textContent = '⏰ Please submit your final course selections by Monday, November 23rd at 10:00pm.';
+    document.getElementById('deadlineBox').textContent = '⏰ Please submit your final course selections by Friday, November 27th at 10:00pm.';
 
     // Show original interests as badges
     const prevDiv = document.getElementById('prevInterests');
